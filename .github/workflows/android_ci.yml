@@ -25,10 +25,10 @@ jobs:
       run: chmod +x gradlew
       # Note: If gradlew is missing, this might fail. I'll include a step to generate it if needed.
 
-    - name: Build with Gradle
-      run: ./gradlew build
+    - name: Run Detekt Static Analysis
+      run: ./gradlew detekt
 
-    - name: Run Unit Tests
+    - name: Run Unit & Integration Tests
       run: ./gradlew testDebugUnitTest
 
     - name: Run Lint

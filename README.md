@@ -8,9 +8,22 @@
 - **Sales Management**: Real-time total calculation, fuel type selection, and multiple payment modes.
 - **Shift Tracking**: Start/End shift management with meter reading validation.
 - **Analytics & Reports**: Visual data insights using **Vico Charts**, tracking revenue trends and fuel distribution.
-- **CI/CD**: GitHub Actions workflow for automated builds, linting, and testing.
+- **CI/CD**: GitHub Actions workflow for automated builds, linting, Detekt static analysis, and testing.
 - **Offline First**: Powered by **Room** for reliable data persistence.
 - **Premium UI**: Dark mode support, custom geometric interactions, and a strict 4dp spacing grid.
+
+## 🛡️ Security & Compliance
+
+- **Data Protection**: `android:allowBackup` is disabled to prevent unauthorized data extraction.
+- **Code Hardening**: R8/ProGuard minification and obfuscation enabled for release builds.
+- **Static Analysis**: Integrated **Detekt** for automated security smell detection and code quality enforcement.
+- **Authentication**: Simulated secure PIN verification with biometric fallback support.
+
+## 🧪 Testing
+
+- **Unit Testing**: JUnit 4 with MockK for ViewModel and business logic verification.
+- **Integration Testing**: **Robolectric** for database and persistence layer verification on the JVM.
+- **CI Pipeline**: Automated checks running on every PR to ensure zero regressions.
 
 ## 🛠 Tech Stack
 

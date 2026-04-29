@@ -45,11 +45,18 @@ class AuthViewModel @Inject constructor() : ViewModel() {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
             delay(1000) // Simulate network/DB check
-            if (pin == "1234") {
+            val isValid = verifyPin(pin)
+            if (isValid) {
                 _state.update { it.copy(isLoading = false, isAuthenticated = true) }
             } else {
                 _state.update { it.copy(isLoading = false, errorMessage = "Invalid PIN", pinInput = "") }
             }
         }
+    }
+
+    private suspend fun verifyPin(pin: String): Boolean {
+        // In a real application, this would check against a secure hash in the database
+        // or call an authentication service. For this demo, we'll simulate a check.
+        return pin == "1234" 
     }
 }
