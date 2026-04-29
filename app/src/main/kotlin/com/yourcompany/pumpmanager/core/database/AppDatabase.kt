@@ -7,7 +7,10 @@ import com.yourcompany.pumpmanager.feature.auth.UserEntity
 import com.yourcompany.pumpmanager.feature.inventory.FuelTypeEntity
 import com.yourcompany.pumpmanager.feature.inventory.TankEntity
 import com.yourcompany.pumpmanager.feature.shift.ShiftEntity
+import com.yourcompany.pumpmanager.feature.shift.ShiftDao
 import com.yourcompany.pumpmanager.feature.sales.SaleEntity
+import com.yourcompany.pumpmanager.feature.sales.SaleDao
+import com.yourcompany.pumpmanager.feature.inventory.TankDao
 
 @Database(
     entities = [

@@ -12,6 +12,9 @@ import androidx.navigation.compose.rememberNavController
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.yourcompany.pumpmanager.feature.auth.AuthScreen
 import com.yourcompany.pumpmanager.feature.dashboard.DashboardScreen
+import com.yourcompany.pumpmanager.feature.sales.SalesScreen
+import com.yourcompany.pumpmanager.feature.shift.ShiftScreen
+import com.yourcompany.pumpmanager.feature.reports.ReportsScreen
 
 @Composable
 fun AppNavHost(
@@ -45,6 +48,24 @@ fun AppNavHost(
                 onNavigateTo = { route ->
                     navController.navigate(route)
                 }
+            )
+        }
+        composable(Routes.Sales.route) {
+            SalesScreen(
+                viewModel = hiltViewModel(),
+                snackbarHostState = snackbarHostState
+            )
+        }
+        composable(Routes.Shift.route) {
+            ShiftScreen(
+                viewModel = hiltViewModel(),
+                snackbarHostState = snackbarHostState
+            )
+        }
+        composable(Routes.Reports.route) {
+            ReportsScreen(
+                viewModel = hiltViewModel(),
+                snackbarHostState = snackbarHostState
             )
         }
     }

@@ -98,6 +98,9 @@ data class NavigationItem(val label: String, val icon: ImageVector, val route: S
 @Composable
 fun DashboardScreenPreview() {
     PumpManagerTheme {
-        DashboardScreen(onNavigateTo = {})
+        DashboardScreen(
+            snackbarHostState = remember { SnackbarHostState() },
+            onNavigateTo = {}
+        )
     }
 }
