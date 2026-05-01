@@ -1,5 +1,6 @@
 package com.yourcompany.pumpmanager.feature.auth
 
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -23,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.fragment.app.FragmentActivity
 import com.yourcompany.pumpmanager.core.theme.PumpManagerTheme
 
 @Composable
@@ -48,14 +50,23 @@ fun AuthScreen(
 
     AuthContent(
         state = state,
-        onEvent = viewModel::onEvent
+        onEvent = viewModel::onEvent,
+        onBiometricClick = {
+            val activity = LocalActivity.current as? FragmentActivity ?: return@AuthContent
+            BiometricHelper.authenticate(
+                activity = activity,
+                onSuccess = { viewModel.onEvent(AuthEvent.BiometricTriggered) },
+                onError = { /* prompt handles its own error UI */ }
+            )
+        }
     )
 }
 
 @Composable
 private fun AuthContent(
     state: AuthUiState,
-    onEvent: (AuthEvent) -> Unit
+    onEvent: (AuthEvent) -> Unit,
+    onBiometricClick: () -> Unit = { onEvent(AuthEvent.BiometricTriggered) }
 ) {
     Column(
         modifier = Modifier
@@ -107,7 +118,7 @@ private fun AuthContent(
         PinPad(
             onDigitClick = { onEvent(AuthEvent.PinDigitEntered(it)) },
             onDeleteClick = { onEvent(AuthEvent.PinDeleted) },
-            onBiometricClick = { onEvent(AuthEvent.BiometricTriggered) }
+            onBiometricClick = onBiometricClick
         )
         
         if (state.isLoading) {
@@ -147,8 +158,8 @@ private fun PinPad(
     ) {
         items(digits) { item ->
             when (item) {
-                "BIO" -> PinButton(icon = Icons.Default.Fingerprint, onClick = onBiometricClick)
-                "DEL" -> PinButton(icon = Icons.Default.Backspace, onClick = onDeleteClick)
+                "BIO" -> PinButton(icon = Icons.Default.Fingerprint, contentDesc = "Authenticate with fingerprint", onClick = onBiometricClick)
+                "DEL" -> PinButton(icon = Icons.Default.Backspace, contentDesc = "Delete last digit", onClick = onDeleteClick)
                 else -> PinButton(text = item, onClick = { onDigitClick(item) })
             }
         }
@@ -159,6 +170,7 @@ private fun PinPad(
 private fun PinButton(
     text: String? = null,
     icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    contentDesc: String? = null,
     onClick: () -> Unit
 ) {
     Box(
@@ -177,7 +189,7 @@ private fun PinButton(
         } else if (icon != null) {
             Icon(
                 imageVector = icon,
-                contentDescription = null,
+                contentDescription = contentDesc,
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(28.dp)
             )

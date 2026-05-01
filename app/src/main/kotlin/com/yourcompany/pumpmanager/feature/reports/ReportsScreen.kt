@@ -44,14 +44,16 @@ fun ReportsScreen(
 
     ReportsContent(
         state = state,
-        onRefresh = { viewModel.onEvent(ReportsEvent.RefreshData) }
+        onRefresh = { viewModel.onEvent(ReportsEvent.RefreshData) },
+        onPeriodChanged = { viewModel.onEvent(ReportsEvent.PeriodChanged(it)) }
     )
 }
 
 @Composable
 private fun ReportsContent(
     state: ReportsUiState,
-    onRefresh: () -> Unit
+    onRefresh: () -> Unit,
+    onPeriodChanged: (Period) -> Unit = {}
 ) {
     val chartStyle = rememberChartStyle(
         columnColors = listOf(IndigoPrimary),
@@ -71,22 +73,40 @@ private fun ReportsContent(
             color = MaterialTheme.colorScheme.onBackground
         )
 
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Period selector
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Period.entries.forEach { period ->
+                FilterChip(
+                    selected = state.selectedPeriod == period,
+                    onClick = { onRefresh(); onPeriodChanged(period) },
+                    label = { Text(period.name.lowercase().replaceFirstChar { it.uppercase() }) }
+                )
+            }
+        }
+
         Spacer(modifier = Modifier.height(24.dp))
 
         if (state.isLoading) {
             ShimmerKpiRow()
         } else {
+            val periodLabel = when (state.selectedPeriod) {
+                Period.TODAY -> "Today"
+                Period.WEEK -> "This Week"
+                Period.MONTH -> "This Month"
+            }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 KpiCard(
-                    label = "Today's Revenue",
+                    label = "$periodLabel Revenue",
                     value = "₹ ${String.format("%.0f", state.totalRevenueToday)}",
                     modifier = Modifier.weight(1f)
                 )
                 KpiCard(
-                    label = "Sales Count",
+                    label = "$periodLabel Sales",
                     value = state.totalSalesCountToday.toString(),
                     modifier = Modifier.weight(1f)
                 )

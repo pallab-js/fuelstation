@@ -1,0 +1,64 @@
+<resources>
+    <string name="app_name">PumpManager Pro</string>
+
+    <!-- Auth -->
+    <string name="auth_welcome">Welcome Back</string>
+    <string name="auth_subtitle">Enter your PIN to continue</string>
+    <string name="auth_error_invalid_pin">Invalid PIN</string>
+    <string name="auth_error_no_user">No user found</string>
+    <string name="auth_biometric_title">Biometric Login</string>
+    <string name="auth_biometric_subtitle">Use your fingerprint to sign in</string>
+    <string name="auth_biometric_negative">Use PIN</string>
+    <string name="auth_cd_fingerprint">Authenticate with fingerprint</string>
+    <string name="auth_cd_delete">Delete last digit</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_overview">Overview</string>
+    <string name="dashboard_today_revenue">Today\'s Revenue</string>
+    <string name="dashboard_sales_today">Sales Today</string>
+    <string name="dashboard_active_shift">Active Shift</string>
+    <string name="dashboard_no_shift">No Active Shift</string>
+    <string name="dashboard_no_shift_hint">Start a shift to begin recording sales</string>
+    <string name="dashboard_quick_actions">Quick Actions</string>
+    <string name="dashboard_action_new_sale">New Sale</string>
+    <string name="dashboard_action_shift">Shift</string>
+    <string name="dashboard_action_reports">Reports</string>
+
+    <!-- Sales -->
+    <string name="sales_title">New Sale</string>
+    <string name="sales_error_no_volume">Please enter volume</string>
+    <string name="sales_error_max_volume">Volume exceeds maximum (9999 L)</string>
+    <string name="sales_error_no_shift">No active shift. Please start a shift first.</string>
+    <string name="sales_save">Save Sale</string>
+
+    <!-- Shift -->
+    <string name="shift_title">Shift Management</string>
+    <string name="shift_start">Start New Shift</string>
+    <string name="shift_end">End Shift</string>
+    <string name="shift_opening_meter">Opening Meter Reading</string>
+    <string name="shift_closing_meter">Closing Meter Reading</string>
+    <string name="shift_initialize">Initialize Shift</string>
+    <string name="shift_close">Close Shift</string>
+    <string name="shift_active">Active Shift</string>
+    <string name="shift_live">LIVE</string>
+    <string name="shift_error_already_active">A shift is already active</string>
+    <string name="shift_error_no_session">No active session</string>
+    <string name="shift_error_invalid_opening">Invalid opening meter reading</string>
+    <string name="shift_error_invalid_closing">Closing meter must be ≥ opening meter</string>
+    <string name="shift_cd_start">Start shift</string>
+    <string name="shift_cd_stop">Stop shift</string>
+
+    <!-- Inventory -->
+    <string name="inventory_title">Inventory</string>
+    <string name="inventory_no_tanks">No tanks found</string>
+    <string name="inventory_cd_low_stock">Low stock warning</string>
+
+    <!-- Reports -->
+    <string name="reports_title">Analytics</string>
+    <string name="reports_fuel_breakdown">Fuel Breakdown</string>
+    <string name="reports_trend">7-Day Revenue Trend</string>
+    <string name="reports_no_data">No data available</string>
+    <string name="reports_period_today">Today</string>
+    <string name="reports_period_week">Week</string>
+    <string name="reports_period_month">Month</string>
+</resources>

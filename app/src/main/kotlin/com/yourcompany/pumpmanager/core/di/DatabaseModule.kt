@@ -3,6 +3,8 @@ package com.yourcompany.pumpmanager.core.di
 import android.content.Context
 import androidx.room.Room
 import com.yourcompany.pumpmanager.core.database.AppDatabase
+import com.yourcompany.pumpmanager.core.database.MIGRATION_1_2
+import com.yourcompany.pumpmanager.feature.auth.UserDao
 import com.yourcompany.pumpmanager.feature.sales.SaleDao
 import com.yourcompany.pumpmanager.feature.shift.ShiftDao
 import com.yourcompany.pumpmanager.feature.inventory.TankDao
@@ -24,7 +26,12 @@ object DatabaseModule {
             context,
             AppDatabase::class.java,
             "pump_manager_db"
-        ).build()
+        ).addMigrations(MIGRATION_1_2).build()
+    }
+
+    @Provides
+    fun provideUserDao(database: AppDatabase): UserDao {
+        return database.userDao()
     }
 
     @Provides
