@@ -126,7 +126,7 @@ private fun StartShiftForm(
             if (isLoading) {
                 CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
             } else {
-                Icon(Icons.Default.PlayArrow, contentDescription = null)
+                Icon(Icons.Default.PlayArrow, contentDescription = "Start shift")
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Initialize Shift")
             }
@@ -216,7 +216,7 @@ private fun ActiveShiftDashboard(
                 if (isLoading) {
                     CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
                 } else {
-                    Icon(Icons.Default.Stop, contentDescription = null)
+                    Icon(Icons.Default.Stop, contentDescription = "Stop shift")
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Close Shift")
                 }

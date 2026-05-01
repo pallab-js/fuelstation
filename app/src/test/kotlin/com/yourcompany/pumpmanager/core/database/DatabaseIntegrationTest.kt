@@ -8,7 +8,7 @@ import com.yourcompany.pumpmanager.feature.sales.SaleEntity
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
-import org.junit.Assert.assertEquals
+import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -24,9 +24,9 @@ class DatabaseIntegrationTest {
     @Before
     fun createDb() {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        db = Room.inMemoryDatabaseBuilder(
-            context, AppDatabase::class.java
-        ).allowMainThreadQueries().build()
+        db = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
+            .allowMainThreadQueries()
+            .build()
         saleDao = db.saleDao()
     }
 
@@ -37,12 +37,11 @@ class DatabaseIntegrationTest {
     }
 
     @Test
-    @Throws(Exception::class)
-    fun writeSaleAndReadInList() = runBlocking {
+    fun `insert sale and read from list`() = runBlocking {
         val sale = SaleEntity(
-            id = "test_sale_1",
-            shiftId = "shift_1",
-            fuelType = "PETROL",
+            id = "test-1",
+            shiftId = "shift-1",
+            fuelType = "Petrol",
             volumeLiters = 10.0,
             pricePerLiter = 100.0,
             totalAmount = 1000.0,
@@ -50,18 +49,18 @@ class DatabaseIntegrationTest {
             timestamp = System.currentTimeMillis()
         )
         saleDao.insertSale(sale)
-        val allSales = saleDao.getAllSales().first()
-        assertEquals(allSales[0].id, "test_sale_1")
-        assertEquals(allSales[0].totalAmount, 1000.0, 0.0)
+        val all = saleDao.getAllSales().first()
+        assertEquals(1, all.size)
+        assertEquals("test-1", all[0].id)
+        assertEquals(1000.0, all[0].totalAmount, 0.0)
     }
 
     @Test
-    @Throws(Exception::class)
-    fun getSaleById() = runBlocking {
+    fun `get sale by id returns correct record`() = runBlocking {
         val sale = SaleEntity(
-            id = "test_sale_2",
-            shiftId = "shift_1",
-            fuelType = "DIESEL",
+            id = "test-2",
+            shiftId = "shift-1",
+            fuelType = "Diesel",
             volumeLiters = 20.0,
             pricePerLiter = 90.0,
             totalAmount = 1800.0,
@@ -69,8 +68,19 @@ class DatabaseIntegrationTest {
             timestamp = System.currentTimeMillis()
         )
         saleDao.insertSale(sale)
-        val fetchedSale = saleDao.getSaleById("test_sale_2")
-        assertEquals(fetchedSale?.id, "test_sale_2")
-        assertEquals(fetchedSale?.paymentMode, "UPI")
+        val fetched = saleDao.getSaleById("test-2")
+        assertEquals("test-2", fetched?.id)
+        assertEquals("UPI", fetched?.paymentMode)
+    }
+
+    @Test
+    fun `insert duplicate id replaces existing`() = runBlocking {
+        val sale = SaleEntity("dup", "s1", "Petrol", 5.0, 100.0, 500.0, "CASH", 1000L)
+        val updated = sale.copy(totalAmount = 999.0)
+        saleDao.insertSale(sale)
+        saleDao.insertSale(updated)
+        val all = saleDao.getAllSales().first()
+        assertEquals(1, all.size)
+        assertEquals(999.0, all[0].totalAmount, 0.0)
     }
 }
