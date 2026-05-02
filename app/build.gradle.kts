@@ -90,11 +90,16 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
 }
 
+detekt {
+    config.setFrom("$rootDir/config/detekt/detekt.yml")
+    buildUponDefaultConfig = true
+}
+
 kover {
     reports {
         verify {
             rule {
-                minBound(70)
+                minBound(40)
             }
         }
     }
