@@ -22,6 +22,11 @@ class InventoryViewModelTest {
     private val tankDao: TankDao = mockk(relaxed = true)
     private lateinit var viewModel: InventoryViewModel
 
+    @Before
+    fun setup() {
+        Dispatchers.setMain(testDispatcher)
+    }
+
     @After
     fun tearDown() {
         Dispatchers.resetMain()
@@ -29,7 +34,6 @@ class InventoryViewModelTest {
 
     @Test
     fun `seeds tanks when DB is empty`() = runTest {
-        Dispatchers.setMain(testDispatcher)
         every { tankDao.getAllTanks() } returns flowOf(emptyList())
         viewModel = InventoryViewModel(tankDao)
         testDispatcher.scheduler.advanceUntilIdle()
@@ -39,7 +43,6 @@ class InventoryViewModelTest {
 
     @Test
     fun `does not seed when tanks already exist`() = runTest {
-        Dispatchers.setMain(testDispatcher)
         val existing = listOf(TankEntity("t1", "petrol", 10000.0, 8000.0))
         every { tankDao.getAllTanks() } returns flowOf(existing)
         viewModel = InventoryViewModel(tankDao)
@@ -50,7 +53,6 @@ class InventoryViewModelTest {
 
     @Test
     fun `isLowStock returns true when stock below 10 percent`() = runTest {
-        Dispatchers.setMain(testDispatcher)
         every { tankDao.getAllTanks() } returns flowOf(emptyList())
         viewModel = InventoryViewModel(tankDao)
 
@@ -60,7 +62,6 @@ class InventoryViewModelTest {
 
     @Test
     fun `isLowStock returns false when stock above 10 percent`() = runTest {
-        Dispatchers.setMain(testDispatcher)
         every { tankDao.getAllTanks() } returns flowOf(emptyList())
         viewModel = InventoryViewModel(tankDao)
 
