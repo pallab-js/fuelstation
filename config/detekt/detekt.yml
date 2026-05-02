@@ -26,10 +26,12 @@ exceptions:
     active: false
 
 performance:
+  active: true
   SpreadOperator:
     active: false
 
 potential-bugs:
+  active: true
   ImplicitDefaultLocale:
     active: false
 
@@ -51,12 +53,6 @@ naming:
     ignoreAnnotated:
       - Composable
       - Test
-
-performance:
-  active: true
-
-potential-bugs:
-  active: true
 
 coroutines:
   active: true
