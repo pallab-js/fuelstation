@@ -16,6 +16,22 @@ style:
     active: false
   UnusedPrivateMember:
     active: true
+  MatchingDeclarationName:
+    active: false
+  UnusedParameter:
+    active: false
+
+exceptions:
+  TooGenericExceptionCaught:
+    active: false
+
+performance:
+  SpreadOperator:
+    active: false
+
+potential-bugs:
+  ImplicitDefaultLocale:
+    active: false
 
 complexity:
   LongMethod:
