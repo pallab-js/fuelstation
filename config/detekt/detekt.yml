@@ -16,8 +16,6 @@ style:
     active: false
   UnusedPrivateMember:
     active: true
-  MatchingDeclarationName:
-    active: false
   UnusedParameter:
     active: false
 
@@ -48,6 +46,8 @@ complexity:
     active: false
 
 naming:
+  MatchingDeclarationName:
+    active: false
   FunctionNaming:
     active: true
     ignoreAnnotated:
