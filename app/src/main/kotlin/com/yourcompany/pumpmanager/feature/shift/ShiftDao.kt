@@ -14,7 +14,7 @@ interface ShiftDao {
     @Query("SELECT * FROM shifts WHERE status = 'active' LIMIT 1")
     fun getActiveShift(): Flow<ShiftEntity?>
 
-    @Query("SELECT * FROM shifts ORDER BY startTime DESC")
+    @Query("SELECT * FROM shifts ORDER BY start_time DESC")
     fun getAllShifts(): Flow<List<ShiftEntity>>
 
     @Query("SELECT * FROM shifts WHERE id = :id")
