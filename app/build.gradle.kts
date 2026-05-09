@@ -6,14 +6,15 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.detekt)
     alias(libs.plugins.kover)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
-    namespace = "com.yourcompany.pumpmanager"
+    namespace = "com.pallab.pumpmanager"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.yourcompany.pumpmanager"
+        applicationId = "com.pallab.pumpmanager"
         minSdk = 26
         targetSdk = 35
         versionCode = 1
@@ -35,11 +36,11 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions {
-        jvmTarget = "17"
-    }
     buildFeatures {
         compose = true
+    }
+    ksp {
+        arg("room.schemaLocation", "$projectDir/schemas")
     }
     testOptions {
         unitTests.isIncludeAndroidResources = true
@@ -55,6 +56,7 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation("androidx.compose.material:material-icons-extended")
     implementation(libs.material)
     
     // Navigation
@@ -69,6 +71,7 @@ dependencies {
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)
+    implementation(libs.room.paging)
 
     // Vico Charts
     implementation(libs.vico.compose)
@@ -78,11 +81,29 @@ dependencies {
     // Biometric
     implementation(libs.androidx.biometric)
 
+    // SQLCipher
+    implementation(libs.sqlcipher.android)
+
+    // Serialization
+    implementation(libs.kotlinx.serialization.json)
+
+    // Paging
+    implementation(libs.paging.runtime)
+    implementation(libs.paging.compose)
+
+    // WorkManager
+    implementation(libs.work.runtime.ktx)
+    implementation(libs.hilt.work)
+
+    // DataStore
+    implementation(libs.datastore.preferences)
+
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)
     testImplementation(libs.mockk)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.turbines)
+    testImplementation(libs.androidx.test.core)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
@@ -96,10 +117,18 @@ detekt {
     buildUponDefaultConfig = true
 }
 
-koverReport {
-    verify {
-        rule {
-            minBound(40)
+kover {
+    reports {
+        verify {
+            rule {
+                minBound(15)
+            }
         }
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     }
 }

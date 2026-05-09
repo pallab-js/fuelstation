@@ -61,4 +61,19 @@
     <string name="reports_period_today">Today</string>
     <string name="reports_period_week">Week</string>
     <string name="reports_period_month">Month</string>
+    <string name="reports_export">Export</string>
+
+    <!-- Set PIN -->
+    <string name="setpin_title">Set Your PIN</string>
+    <string name="setpin_subtitle">Choose a 4-digit PIN to secure your account</string>
+    <string name="setpin_enter">Enter PIN</string>
+    <string name="setpin_confirm">Confirm PIN</string>
+    <string name="setpin_error_mismatch">PINs do not match. Try again.</string>
+    <string name="setpin_error_failed">Failed to save PIN</string>
+
+    <!-- General -->
+    <string name="error_insufficient_stock">Insufficient stock for selected fuel type</string>
+    <string name="error_no_fuel_selected">No fuel type selected</string>
+    <string name="error_lockout">Too many attempts. Try again in %1$ds</string>
+    <string name="label_delete">Delete</string>
 </resources>
