@@ -76,6 +76,7 @@ object DatabaseModule {
             val secretKey = (keyStore.getEntry(alias, null) as KeyStore.SecretKeyEntry).secretKey
             Base64.getEncoder().encode(secretKey.encoded)
         } catch (e: Exception) {
+            android.util.Log.w("DatabaseModule", "AndroidKeyStore unavailable, using fallback", e)
             "pump_manager_fallback_key".toByteArray(Charsets.UTF_8)
         }
     }
