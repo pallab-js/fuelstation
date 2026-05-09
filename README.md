@@ -1,69 +1,70 @@
-# PumpManager Pro ⛽
+# PumpManager Pro
 
-**PumpManager Pro** is a modern, high-performance fuel station management application built with **Kotlin 2.0** and **Jetpack Compose**. It follows the **Feature-Sliced Design (FSD)** architecture and uses the **Genesis** design system for a premium, editorial-style interface.
+A modern fuel station management app built with **Kotlin**, **Jetpack Compose**, and **Feature-Sliced Design** — optimized for offline-first point-of-sale operations.
 
-## 🚀 Features
+## Features
 
-- **Authentication**: Secure PIN-based and biometric login.
-- **Sales Management**: Real-time total calculation, fuel type selection, and multiple payment modes.
-- **Shift Tracking**: Start/End shift management with meter reading validation.
-- **Analytics & Reports**: Visual data insights using **Vico Charts**, tracking revenue trends and fuel distribution.
-- **CI/CD**: GitHub Actions workflow for automated builds, linting, Detekt static analysis, and testing.
-- **Offline First**: Powered by **Room** for reliable data persistence.
-- **Premium UI**: Dark mode support, custom geometric interactions, and a strict 4dp spacing grid.
+- **Sales**: Real-time total calculation, fuel type selection, multiple payment modes, custom numpad
+- **Shift Management**: Start/end shift with meter reading validation and active shift tracking
+- **Inventory**: Fuel tank stock monitoring with capacity tracking
+- **Analytics**: Revenue trends and fuel distribution charts via Vico
+- **Authentication**: PIN-based and biometric login
+- **Offline-First**: Room database with reliable local persistence
+- **CI/CD**: Automated builds, linting, Detekt analysis, and tests
 
-## 🛡️ Security & Compliance
+## Tech Stack
 
-- **Data Protection**: `android:allowBackup` is disabled to prevent unauthorized data extraction.
-- **Code Hardening**: R8/ProGuard minification and obfuscation enabled for release builds.
-- **Static Analysis**: Integrated **Detekt** for automated security smell detection and code quality enforcement.
-- **Authentication**: Simulated secure PIN verification with biometric fallback support.
+| Layer | Choice |
+|-------|--------|
+| UI | Jetpack Compose + Material 3 |
+| Architecture | MVI + Feature-Sliced Design |
+| DI | Dagger Hilt |
+| Database | Room |
+| Navigation | Jetpack Navigation Compose |
+| Charts | Vico |
+| Async | Kotlin Coroutines + Flow |
+| CI | GitHub Actions |
 
-## 🧪 Testing
-
-- **Unit Testing**: JUnit 4 with MockK for ViewModel and business logic verification.
-- **Integration Testing**: **Robolectric** for database and persistence layer verification on the JVM.
-- **CI Pipeline**: Automated checks running on every PR to ensure zero regressions.
-
-## 🛠 Tech Stack
-
-- **UI**: Jetpack Compose + Material 3
-- **Architecture**: MVI (Model-View-Intent) + Feature-Sliced Design
-- **Dependency Injection**: Dagger Hilt
-- **Database**: Room
-- **Navigation**: Type-safe Jetpack Navigation Compose
-- **Charts**: Vico
-- **Async**: Kotlin Coroutines + Flow
-
-## 📂 Project Structure (FSD)
+## Project Structure
 
 ```
-com.yourcompany.pumpmanager/
-├── core/                        # Shared infrastructure (Theme, DB, Navigation)
-│   ├── theme/                   # Genesis design system tokens
-│   ├── database/                # Room configuration
-│   └── ui/                      # Shared Compose components (StatsCard, etc.)
-└── feature/                     # Domain-driven features
-    ├── auth/                    # PIN/Biometric login logic
-    ├── dashboard/               # Main app scaffold and navigation
-    ├── sales/                   # Core sales recording loop
-    ├── shift/                   # Attendant shift management
-    └── reports/                 # Analytics and Vico visualizations
+app/src/main/java/com/yourcompany/pumpmanager/
+├── core/               # Theme, database, navigation, shared UI
+│   ├── theme/
+│   ├── database/
+│   ├── navigation/
+│   └── ui/
+└── feature/            # Domain features
+    ├── auth/
+    ├── dashboard/
+    ├── sales/
+    ├── shift/
+    ├── inventory/
+    └── reports/
 ```
 
-## 🎨 Design Principles (Genesis)
+## Requirements
 
-- **Colors**: Primary Indigo (`#6366F1`) for interaction; warm neutrals for surfaces.
-- **Typography**: Editorial scale using **DM Sans** with tight tracking for display headings.
-- **Elevation**: Minimal shadows; elevation communicated through lift and subtle tinted glows on interaction.
-- **Grid**: Strict adherence to a 4dp base unit.
+- Android Studio Ladybug+
+- JDK 17
+- Android SDK 35
+- Gradle 8.x
 
-## 🛠 Installation
+## Quick Start
 
-1. Clone the repository.
-2. Open in Android Studio (Ladybug+ recommended).
-3. Sync Gradle (Version Catalogs enabled).
-4. Run on an API 26+ device.
+```bash
+git clone https://github.com/pallab-js/fuelstation.git
+cd fuelstation
+./gradlew assembleDebug
+```
 
----
-Built with ❤️ by Antigravity.
+## Testing
+
+```bash
+./gradlew test                    # Unit tests
+./gradlew koverHtmlReport         # Coverage report
+```
+
+## License
+
+MIT
