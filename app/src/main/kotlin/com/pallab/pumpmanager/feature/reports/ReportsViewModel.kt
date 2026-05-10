@@ -1,11 +1,11 @@
 package com.pallab.pumpmanager.feature.reports
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pallab.pumpmanager.feature.sales.SaleEntity
 import com.pallab.pumpmanager.feature.sales.SalesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -65,6 +65,7 @@ class ReportsViewModel @Inject constructor(
         return try {
             saleRepository.getAllSales().first().filter { it.timestamp >= windowStart }
         } catch (e: Exception) {
+            Log.w("ReportsViewModel", "Failed to get sales for export", e)
             emptyList()
         }
     }
@@ -86,7 +87,7 @@ class ReportsViewModel @Inject constructor(
 
         val periodSales = allSales.filter { it.timestamp >= windowStart }
 
-        val trend = try { saleRepository.getRevenueTrendSince(windowStart) } catch (_: Exception) { emptyList() }
+        val trend = try { saleRepository.getRevenueTrendSince(windowStart) } catch (e: Exception) { Log.w("ReportsViewModel", "Failed to get revenue trend", e); emptyList() }
         val revenueTrend = trend.map { it.day to it.revenue }
 
         return ReportsUiState(
