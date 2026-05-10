@@ -16,6 +16,7 @@ interface SalesRepository {
     suspend fun getTotalVolumeForShiftByFuel(shiftId: String, fuelType: String): Double?
     suspend fun getRevenueTrendSince(windowStart: Long): List<DayRevenue>
     suspend fun insertSale(sale: SaleEntity)
+    suspend fun deleteSale(id: String)
     fun getSalesPaged(): Flow<PagingData<SaleEntity>>
 }
 
@@ -28,6 +29,7 @@ class SalesRepositoryImpl @Inject constructor(private val saleDao: SaleDao) : Sa
     override suspend fun getTotalVolumeForShiftByFuel(shiftId: String, fuelType: String) = saleDao.getTotalVolumeForShiftByFuel(shiftId, fuelType)
     override suspend fun getRevenueTrendSince(windowStart: Long) = saleDao.getRevenueTrendSince(windowStart)
     override suspend fun insertSale(sale: SaleEntity) = saleDao.insertSale(sale)
+    override suspend fun deleteSale(id: String) = saleDao.deleteSale(id)
     override fun getSalesPaged(): Flow<PagingData<SaleEntity>> = Pager(
         config = PagingConfig(pageSize = 30, enablePlaceholders = false),
         pagingSourceFactory = { saleDao.getSalesPaged() }

@@ -21,7 +21,8 @@ data class DashboardUiState(
     val activeShift: ShiftEntity? = null,
     val currentUserId: String? = null,
     val currentUserRole: String? = null,
-    val isLoading: Boolean = true
+    val isLoading: Boolean = true,
+    val errorMessage: String? = null
 )
 
 @HiltViewModel
@@ -34,23 +35,45 @@ class DashboardViewModel @Inject constructor(
     private val _state = MutableStateFlow(DashboardUiState())
     val state = _state.asStateFlow()
 
+    private var loadJob: kotlinx.coroutines.Job? = null
+
     init {
-        viewModelScope.launch {
+        loadData()
+    }
+
+    fun refresh() {
+        loadJob?.cancel()
+        _state.value = DashboardUiState()
+        loadData()
+    }
+
+    fun onErrorDismissed() {
+        _state.value = _state.value.copy(errorMessage = null)
+    }
+
+    private fun loadData() {
+        loadJob = viewModelScope.launch {
             val startOfDay = LocalDate.now()
                 .atStartOfDay(ZoneId.systemDefault())
                 .toInstant()
                 .toEpochMilli()
-
-            combine(saleRepository.getTodaySales(startOfDay), shiftRepository.getActiveShift()) { sales, activeShift ->
-                DashboardUiState(
-                    todayRevenue = sales.sumOf { it.totalAmount },
-                    todaySalesCount = sales.size,
-                    activeShift = activeShift,
-                    currentUserId = sessionManager.currentUserId.value,
-                    currentUserRole = sessionManager.currentUserRole.value,
+            try {
+                combine(saleRepository.getTodaySales(startOfDay), shiftRepository.getActiveShift()) { sales, activeShift ->
+                    DashboardUiState(
+                        todayRevenue = sales.sumOf { it.totalAmount },
+                        todaySalesCount = sales.size,
+                        activeShift = activeShift,
+                        currentUserId = sessionManager.currentUserId.value,
+                        currentUserRole = sessionManager.currentUserRole.value,
+                        isLoading = false
+                    )
+                }.collect { _state.value = it }
+            } catch (e: Exception) {
+                _state.value = DashboardUiState(
+                    errorMessage = e.message ?: "Unknown error",
                     isLoading = false
                 )
-            }.collect { _state.value = it }
+            }
         }
     }
 }

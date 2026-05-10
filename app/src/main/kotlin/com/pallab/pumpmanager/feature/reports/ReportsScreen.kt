@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,11 +24,12 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import kotlinx.coroutines.launch
-import com.pallab.pumpmanager.feature.sales.SaleEntity
 import java.io.File
 import java.io.PrintWriter
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import com.pallab.pumpmanager.core.theme.PumpManagerTheme
 import com.pallab.pumpmanager.core.ui.StatsCard
 
@@ -37,13 +39,23 @@ fun ReportsScreen(
     snackbarHostState: SnackbarHostState
 ) {
     val state by viewModel.state.collectAsState()
+    val exportResult by viewModel.exportResult.collectAsState()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(state.errorMessage) {
         state.errorMessage?.let {
             snackbarHostState.showSnackbar(it)
-            viewModel.onEvent(ReportsEvent.DismissError)
+        }
+    }
+
+    LaunchedEffect(exportResult) {
+        if (exportResult is ExportResult.Ready) {
+            val result = exportResult as ExportResult.Ready
+            scope.launch {
+                exportToCsv(context, result.sales, result.period)
+            }
+            viewModel.clearExportResult()
         }
     }
 
@@ -51,42 +63,43 @@ fun ReportsScreen(
         state = state,
         onRefresh = { viewModel.onEvent(ReportsEvent.RefreshData) },
         onPeriodChanged = { viewModel.onEvent(ReportsEvent.PeriodChanged(it)) },
-        onExport = {
-            scope.launch {
-                exportToCsv(viewModel, context)
-            }
-        }
+        onExport = { viewModel.onEvent(ReportsEvent.ExportCsv) }
     )
 }
 
-private suspend fun exportToCsv(viewModel: ReportsViewModel, context: Context) {
-    val now = LocalDate.now()
-    val zone = ZoneId.systemDefault()
-    val windowStart = now.minusDays(29).atStartOfDay(zone).toInstant().toEpochMilli()
-
-    val sales = viewModel.getSalesForExport(windowStart)
+private suspend fun exportToCsv(context: Context, sales: List<com.pallab.pumpmanager.feature.sales.SaleEntity>, period: Period) {
     if (sales.isEmpty()) {
         Toast.makeText(context, "No data to export", Toast.LENGTH_SHORT).show()
         return
     }
-    val reportsDir = File(context.getExternalFilesDir(null), "reports")
-    reportsDir.mkdirs()
-    val file = File(reportsDir, "report_${LocalDate.now()}.csv")
-    PrintWriter(file).use { writer ->
-        writer.println("Date,Fuel Type,Volume (L),Price/L,Total,Payment Mode")
-        sales.forEach { sale ->
-            val date = java.time.Instant.ofEpochMilli(sale.timestamp)
-                .atZone(java.time.ZoneId.systemDefault()).toLocalDate()
-            writer.println("$date,${sale.fuelType},${sale.volumeLiters},${sale.pricePerLiter},${sale.totalAmount},${sale.paymentMode}")
+    try {
+        val now = LocalDateTime.now()
+        val reportsDir = File(context.getExternalFilesDir(null), "reports")
+        reportsDir.mkdirs()
+        val file = File(reportsDir, "report_${now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HHmmss"))}.csv")
+        PrintWriter(file).use { writer ->
+            writer.println("Date,Fuel Type,Volume (L),Price/L,Total,Payment Mode")
+            sales.forEach { sale ->
+                val date = java.time.Instant.ofEpochMilli(sale.timestamp)
+                    .atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+                writer.println("$date,${sale.fuelType},${sale.volumeLiters},${sale.pricePerLiter},${sale.totalAmount},${sale.paymentMode}")
+            }
         }
+        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/csv"
+            putExtra(Intent.EXTRA_STREAM, uri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        val chooser = Intent.createChooser(intent, "Share Report")
+        if (intent.resolveActivity(context.packageManager) != null) {
+            context.startActivity(chooser)
+        } else {
+            Toast.makeText(context, "No app available to share the report", Toast.LENGTH_SHORT).show()
+        }
+    } catch (e: Exception) {
+        Toast.makeText(context, "Export failed: ${e.message}", Toast.LENGTH_SHORT).show()
     }
-    val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-    val intent = Intent(Intent.ACTION_SEND).apply {
-        type = "text/csv"
-        putExtra(Intent.EXTRA_STREAM, uri)
-        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-    }
-    context.startActivity(Intent.createChooser(intent, "Share Report"))
 }
 
 @Composable
@@ -103,20 +116,28 @@ private fun ReportsContent(
             .verticalScroll(rememberScrollState())
             .padding(24.dp)
     ) {
-        Text(
-            text = "Analytics",
-            style = MaterialTheme.typography.headlineLarge,
-            color = MaterialTheme.colorScheme.onBackground
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Analytics",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            IconButton(onClick = onRefresh) {
+                Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+            }
+        }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Period selector
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Period.entries.forEach { period ->
                 FilterChip(
                     selected = state.selectedPeriod == period,
-                    onClick = { onRefresh(); onPeriodChanged(period) },
+                    onClick = { onPeriodChanged(period) },
                     label = { Text(period.name.lowercase().replaceFirstChar { it.uppercase() }) }
                 )
             }
@@ -138,12 +159,12 @@ private fun ReportsContent(
             ) {
                 KpiCard(
                     label = "$periodLabel Revenue",
-                    value = "₹ ${String.format("%.0f", state.totalRevenueToday)}",
+                    value = "₹ ${String.format("%.0f", state.totalRevenue)}",
                     modifier = Modifier.weight(1f)
                 )
                 KpiCard(
                     label = "$periodLabel Sales",
-                    value = state.totalSalesCountToday.toString(),
+                    value = state.totalSalesCount.toString(),
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -151,10 +172,14 @@ private fun ReportsContent(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Fuel Breakdown
         if (!state.isLoading) {
+            val breakdownLabel = when (state.selectedPeriod) {
+                Period.TODAY -> "Fuel Breakdown (Today)"
+                Period.WEEK -> "Fuel Breakdown (This Week)"
+                Period.MONTH -> "Fuel Breakdown (This Month)"
+            }
             Text(
-                text = "Fuel Breakdown (Today)",
+                text = breakdownLabel,
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(bottom = 12.dp)
             )
@@ -179,16 +204,21 @@ private fun ReportsContent(
 
             Spacer(modifier = Modifier.height(32.dp))
 
+            val trendLabel = when (state.selectedPeriod) {
+                Period.TODAY -> "Today's Revenue"
+                Period.WEEK -> "7-Day Revenue Trend"
+                Period.MONTH -> "30-Day Revenue Trend"
+            }
             Text(
-                text = "7-Day Revenue Trend",
+                text = trendLabel,
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(bottom = 12.dp)
             )
             StatsCard {
-                if (state.weeklyRevenueTrend.isEmpty()) {
+                if (state.revenueTrend.isEmpty()) {
                     NoDataView()
                 } else {
-                    state.weeklyRevenueTrend.forEach { (date, revenue) ->
+                    state.revenueTrend.forEach { (date, revenue) ->
                         Row(
                             modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                             horizontalArrangement = Arrangement.SpaceBetween
@@ -201,23 +231,36 @@ private fun ReportsContent(
                         }
                         HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
                     }
-                    }
+                }
+            }
+
+            if (state.errorMessage != null) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(
+                    onClick = onRefresh,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Icon(Icons.Default.Refresh, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Retry")
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-        Button(
-            onClick = onExport,
-            modifier = Modifier.fillMaxWidth(),
-            enabled = !state.isLoading
-        ) {
-            Icon(Icons.Default.Share, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Export Report")
-        }
+            Button(
+                onClick = onExport,
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !state.isLoading
+            ) {
+                Icon(Icons.Default.Share, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Export Report")
+            }
 
-        Spacer(modifier = Modifier.height(48.dp))
+            Spacer(modifier = Modifier.height(48.dp))
+        }
     }
 }
 
@@ -294,10 +337,10 @@ fun ReportsScreenPreview() {
     PumpManagerTheme {
         ReportsContent(
             state = ReportsUiState(
-                totalRevenueToday = 15450.0,
-                totalSalesCountToday = 42,
+                totalRevenue = 15450.0,
+                totalSalesCount = 42,
                 fuelTypeBreakdown = mapOf("Petrol" to 8000.0, "Diesel" to 5000.0, "CNG" to 2450.0),
-                weeklyRevenueTrend = listOf("23/04" to 12000.0, "24/04" to 14000.0, "25/04" to 11000.0, "26/04" to 15000.0, "27/04" to 13000.0, "28/04" to 16000.0, "29/04" to 15450.0)
+                revenueTrend = listOf("23/04" to 12000.0, "24/04" to 14000.0, "25/04" to 11000.0, "26/04" to 15000.0, "27/04" to 13000.0, "28/04" to 16000.0, "29/04" to 15450.0)
             ),
             onRefresh = {}
         )

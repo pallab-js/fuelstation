@@ -38,6 +38,13 @@ fun SalesScreen(
         }
     }
 
+    LaunchedEffect(state.isSuccess) {
+        if (state.isSuccess) {
+            snackbarHostState.showSnackbar("Sale saved successfully")
+            viewModel.onEvent(SalesEvent.DismissSuccess)
+        }
+    }
+
     SalesContent(
         state = state,
         onEvent = viewModel::onEvent
@@ -45,7 +52,7 @@ fun SalesScreen(
 }
 
 @Composable
-private fun SalesContent(
+internal fun SalesContent(
     state: SalesUiState,
     onEvent: (SalesEvent) -> Unit
 ) {

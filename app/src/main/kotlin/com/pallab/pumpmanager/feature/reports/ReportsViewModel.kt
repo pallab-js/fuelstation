@@ -5,16 +5,18 @@ import androidx.lifecycle.viewModelScope
 import com.pallab.pumpmanager.feature.sales.SaleEntity
 import com.pallab.pumpmanager.feature.sales.SalesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 
 @HiltViewModel
@@ -23,6 +25,7 @@ class ReportsViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val _selectedPeriod = MutableStateFlow(Period.TODAY)
+    private val _refreshTrigger = MutableStateFlow(0)
 
     val state: StateFlow<ReportsUiState> = _selectedPeriod
         .flatMapLatest { period ->
@@ -40,18 +43,34 @@ class ReportsViewModel @Inject constructor(
     fun onEvent(event: ReportsEvent) {
         when (event) {
             is ReportsEvent.PeriodChanged -> _selectedPeriod.value = event.period
-            ReportsEvent.RefreshData -> _selectedPeriod.value = _selectedPeriod.value
-            ReportsEvent.DismissError -> { }
-            ReportsEvent.ExportCsv -> { }
+            ReportsEvent.RefreshData -> _refreshTrigger.value = _refreshTrigger.value + 1
+            ReportsEvent.DismissError -> { /* stateIn handles error lifecycle on next emission */ }
+            ReportsEvent.ExportCsv -> {
+                viewModelScope.launch {
+                    val period = _selectedPeriod.value
+                    val days = when (period) { Period.TODAY -> 0; Period.WEEK -> 6; Period.MONTH -> 29 }
+                    val windowStart = LocalDate.now().minusDays(days.toLong())
+                        .atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                    val sales = getSalesForExport(windowStart)
+                    _exportResult.value = ExportResult.Ready(sales, period)
+                }
+            }
         }
     }
 
-    suspend fun getSalesForExport(startOfDay: Long): List<SaleEntity> {
-        return saleRepository.getAllSales().let { flow ->
-            var list: List<SaleEntity>? = null
-            flow.collect { list = it; return@collect }
-            list ?: emptyList()
-        }.filter { it.timestamp >= startOfDay }
+    private val _exportResult = MutableStateFlow<ExportResult>(ExportResult.None)
+    val exportResult: StateFlow<ExportResult> = _exportResult
+
+    private suspend fun getSalesForExport(windowStart: Long): List<SaleEntity> {
+        return try {
+            saleRepository.getAllSales().first().filter { it.timestamp >= windowStart }
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    fun clearExportResult() {
+        _exportResult.value = ExportResult.None
     }
 
     private suspend fun buildReportsState(period: Period, allSales: List<SaleEntity>): ReportsUiState {
@@ -67,16 +86,16 @@ class ReportsViewModel @Inject constructor(
 
         val periodSales = allSales.filter { it.timestamp >= windowStart }
 
-        val trend = saleRepository.getRevenueTrendSince(windowStart)
-        val weeklyRevenueTrend = trend.map { it.day to it.revenue }
+        val trend = try { saleRepository.getRevenueTrendSince(windowStart) } catch (_: Exception) { emptyList() }
+        val revenueTrend = trend.map { it.day to it.revenue }
 
         return ReportsUiState(
             selectedPeriod = period,
-            totalRevenueToday = periodSales.sumOf { s -> s.totalAmount },
-            totalSalesCountToday = periodSales.size,
+            totalRevenue = periodSales.sumOf { s -> s.totalAmount },
+            totalSalesCount = periodSales.size,
             fuelTypeBreakdown = periodSales.groupBy { s -> s.fuelType }
                 .mapValues { e -> e.value.sumOf { s -> s.totalAmount } },
-            weeklyRevenueTrend = weeklyRevenueTrend,
+            revenueTrend = revenueTrend,
             isLoading = false
         )
     }

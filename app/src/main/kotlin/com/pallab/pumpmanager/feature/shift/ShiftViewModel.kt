@@ -6,10 +6,12 @@ import com.pallab.pumpmanager.core.session.SessionManager
 import com.pallab.pumpmanager.core.util.BusinessConstants
 import com.pallab.pumpmanager.core.util.Clock
 import com.pallab.pumpmanager.core.util.IdGenerator
+import com.pallab.pumpmanager.feature.sales.SaleEntity
 import com.pallab.pumpmanager.feature.sales.SalesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -23,13 +25,13 @@ class ShiftViewModel @Inject constructor(
     private val idGenerator: IdGenerator
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(ShiftUiState())
+    private val _state = MutableStateFlow(ShiftUiState(isLoading = true))
     val state = _state.asStateFlow()
 
     init {
         viewModelScope.launch {
             shiftRepository.getActiveShift().collect { activeShift ->
-                _state.update { it.copy(activeShift = activeShift) }
+                _state.update { it.copy(activeShift = activeShift, isLoading = false) }
             }
         }
     }
@@ -41,6 +43,8 @@ class ShiftViewModel @Inject constructor(
             ShiftEvent.StartShift -> startShift()
             ShiftEvent.EndShift -> endShift()
             ShiftEvent.DismissError -> _state.update { it.copy(errorMessage = null) }
+            ShiftEvent.DismissSummary -> _state.update { it.copy(isShiftEnded = false, summaryData = null) }
+            ShiftEvent.DismissStarted -> _state.update { it.copy(isShiftStarted = false) }
         }
     }
 
@@ -52,6 +56,10 @@ class ShiftViewModel @Inject constructor(
         val meter = _state.value.openingMeter.toDoubleOrNull()
         if (meter == null) {
             _state.update { it.copy(errorMessage = "Invalid opening meter reading") }
+            return
+        }
+        if (meter <= 0) {
+            _state.update { it.copy(errorMessage = "Opening meter reading must be greater than 0") }
             return
         }
         val userId = sessionManager.currentUserId.value ?: run {
@@ -72,7 +80,7 @@ class ShiftViewModel @Inject constructor(
                 )
                 shiftRepository.insertShift(newShift)
                 sessionManager.setShift(newShift.id)
-                _state.update { it.copy(isLoading = false, isShiftStarted = true) }
+                _state.update { it.copy(isLoading = false, isShiftStarted = true, openingMeter = "") }
             } catch (e: Exception) {
                 _state.update { it.copy(isLoading = false, errorMessage = "Failed to start shift: ${e.message}") }
             }
@@ -83,7 +91,9 @@ class ShiftViewModel @Inject constructor(
         val activeShift = _state.value.activeShift ?: return
         val meter = _state.value.closingMeter.toDoubleOrNull()
         when {
-            meter == null || meter < activeShift.openingMeterReading ->
+            meter == null ->
+                _state.update { it.copy(errorMessage = "Invalid closing meter reading") }
+            meter < activeShift.openingMeterReading ->
                 _state.update { it.copy(errorMessage = "Closing meter must be ≥ opening meter") }
             meter - activeShift.openingMeterReading > BusinessConstants.MAX_SHIFT_METER_DIFFERENCE_LITERS ->
                 _state.update { it.copy(errorMessage = "Meter difference exceeds maximum (${BusinessConstants.MAX_SHIFT_METER_DIFFERENCE_LITERS.toInt()} L)") }
@@ -97,16 +107,15 @@ class ShiftViewModel @Inject constructor(
                     ))
                     sessionManager.clearShift()
                     val revenue = salesRepository.getTotalRevenueForShift(activeShift.id) ?: 0.0
-                    val salesByShift = salesRepository.getSalesByShiftId(activeShift.id)
-                    var salesList: List<com.pallab.pumpmanager.feature.sales.SaleEntity>? = null
-                    salesByShift.collect { salesList = it; return@collect }
-                    val breakdown = salesList?.groupBy { it.fuelType }?.mapValues { (_, v) -> v.sumOf { it.volumeLiters } } ?: emptyMap()
+                    val salesList = salesRepository.getSalesByShiftId(activeShift.id).first()
+                    val breakdown = salesList.groupBy { it.fuelType }.mapValues { (_, v) -> v.sumOf { it.volumeLiters } }
                     _state.update { it.copy(
                         isLoading = false,
                         isShiftEnded = true,
+                        openingMeter = "",
                         closingMeter = "",
                         summaryData = ShiftSummaryData(
-                            totalSales = salesList?.size ?: 0,
+                            totalSales = salesList.size,
                             totalRevenue = revenue,
                             fuelBreakdown = breakdown,
                             meterDifference = meter - activeShift.openingMeterReading

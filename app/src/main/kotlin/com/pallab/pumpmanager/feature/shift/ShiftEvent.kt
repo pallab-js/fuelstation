@@ -6,4 +6,6 @@ sealed interface ShiftEvent {
     object StartShift : ShiftEvent
     object EndShift : ShiftEvent
     object DismissError : ShiftEvent
+    object DismissSummary : ShiftEvent
+    object DismissStarted : ShiftEvent
 }

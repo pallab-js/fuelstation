@@ -25,4 +25,7 @@ interface TankDao {
 
     @Query("UPDATE tanks SET currentStockLiters = currentStockLiters + :liters WHERE id = :tankId")
     suspend fun addStock(tankId: String, liters: Double): Int
+
+    @Query("UPDATE tanks SET currentStockLiters = currentStockLiters + :liters WHERE fuelTypeId = :fuelTypeId")
+    suspend fun incrementStockByFuelTypeId(fuelTypeId: String, liters: Double): Int
 }

@@ -3,7 +3,7 @@ package com.pallab.pumpmanager.feature.sales
 import com.pallab.pumpmanager.feature.inventory.FuelTypeEntity
 
 enum class PaymentMode {
-    CASH, UPI, CARD
+    CASH, UPI, CARD, CHEQUE, FUEL_CARD, CREDIT
 }
 
 data class SalesUiState(

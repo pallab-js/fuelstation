@@ -26,6 +26,8 @@ class SalesViewModel @Inject constructor(
     private val _state = MutableStateFlow(SalesUiState())
     val state = _state.asStateFlow()
 
+    private var saveInProgress = false
+
     init {
         viewModelScope.launch {
             inventoryRepository.getActiveFuelTypes().collect { fuelTypes ->
@@ -52,7 +54,10 @@ class SalesViewModel @Inject constructor(
             is SalesEvent.VolumeDigitEntered -> {
                 val current = _state.value.volume
                 if (event.digit == "." && current.contains(".")) return
-                _state.update { it.copy(volume = current + event.digit) }
+                val newVolume = current + event.digit
+                val parsed = newVolume.toDoubleOrNull()
+                if (parsed != null && parsed > BusinessConstants.MAX_SALE_VOLUME_LITERS) return
+                _state.update { it.copy(volume = newVolume) }
                 recalculateTotal()
             }
             SalesEvent.VolumeDeleted -> {
@@ -64,6 +69,7 @@ class SalesViewModel @Inject constructor(
             is SalesEvent.PaymentModeChanged -> _state.update { it.copy(paymentMode = event.mode) }
             SalesEvent.SaveSale -> saveSale()
             SalesEvent.DismissError -> _state.update { it.copy(errorMessage = null) }
+            SalesEvent.DismissSuccess -> _state.update { it.copy(isSuccess = false) }
         }
     }
 
@@ -73,6 +79,7 @@ class SalesViewModel @Inject constructor(
     }
 
     private fun saveSale() {
+        if (saveInProgress) return
         val currentState = _state.value
         val vol = currentState.volume.toDoubleOrNull() ?: 0.0
         val shiftId = sessionManager.currentShiftId.value
@@ -83,30 +90,47 @@ class SalesViewModel @Inject constructor(
             vol > BusinessConstants.MAX_SALE_VOLUME_LITERS -> _state.update { it.copy(errorMessage = "Volume exceeds maximum (${BusinessConstants.MAX_SALE_VOLUME_LITERS.toInt()} L)") }
             shiftId == null -> _state.update { it.copy(errorMessage = "No active shift. Please start a shift first.") }
             fuel == null -> _state.update { it.copy(errorMessage = "No fuel type selected") }
-            else -> viewModelScope.launch {
-                _state.update { it.copy(isLoading = true) }
-                try {
-                    salesRepository.insertSale(SaleEntity(
-                        id = idGenerator.newId(),
-                        shiftId = shiftId,
-                        fuelType = fuel.name,
-                        volumeLiters = vol,
-                        pricePerLiter = currentState.pricePerLiter,
-                        totalAmount = currentState.calculatedTotal,
-                        paymentMode = currentState.paymentMode.name,
-                        timestamp = clock.now()
-                    ))
-                    val rowsUpdated = inventoryRepository.decrementStock(
-                        fuelTypeId = fuel.id,
-                        liters = vol
-                    )
-                    if (rowsUpdated == 0) {
-                        _state.update { it.copy(isLoading = false, errorMessage = "Insufficient stock for selected fuel type") }
-                        return@launch
+            else -> {
+                saveInProgress = true
+                viewModelScope.launch {
+                    _state.update { it.copy(isLoading = true) }
+                    try {
+                        val rowsUpdated = inventoryRepository.decrementStock(
+                            fuelTypeId = fuel.id,
+                            liters = vol
+                        )
+                        if (rowsUpdated == 0) {
+                            _state.update { it.copy(isLoading = false, errorMessage = "Insufficient stock for selected fuel type") }
+                            return@launch
+                        }
+                        salesRepository.insertSale(SaleEntity(
+                            id = idGenerator.newId(),
+                            shiftId = shiftId,
+                            fuelType = fuel.id,
+                            volumeLiters = vol,
+                            pricePerLiter = currentState.pricePerLiter,
+                            totalAmount = currentState.calculatedTotal,
+                            paymentMode = currentState.paymentMode.name,
+                            timestamp = clock.now()
+                        ))
+                        _state.update { currentState ->
+                            val firstFuel = currentState.fuelTypes.firstOrNull()
+                            currentState.copy(
+                                volume = "",
+                                pricePerLiter = firstFuel?.pricePerLiter ?: 0.0,
+                                calculatedTotal = 0.0,
+                                paymentMode = PaymentMode.CASH,
+                                selectedFuel = firstFuel,
+                                isLoading = false,
+                                isSuccess = true,
+                                errorMessage = null
+                            )
+                        }
+                    } catch (e: Exception) {
+                        _state.update { it.copy(isLoading = false, errorMessage = "Failed to save sale: ${e.message}") }
+                    } finally {
+                        saveInProgress = false
                     }
-                    _state.update { SalesUiState(isSuccess = true) }
-                } catch (e: Exception) {
-                    _state.update { it.copy(isLoading = false, errorMessage = "Failed to save sale: ${e.message}") }
                 }
             }
         }

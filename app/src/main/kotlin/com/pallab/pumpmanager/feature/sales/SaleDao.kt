@@ -42,6 +42,7 @@ interface SaleDao {
         ORDER BY timestamp ASC
     """)
     suspend fun getRevenueTrendSince(windowStart: Long): List<DayRevenue>
-}
 
-data class DayRevenue(val day: String, val revenue: Double)
+    @Query("DELETE FROM sales WHERE id = :id")
+    suspend fun deleteSale(id: String)
+}

@@ -96,7 +96,7 @@ fun AppNavHost(
             )
         }
         composable<InventoryRoute> {
-            InventoryScreen(viewModel = hiltViewModel())
+            InventoryScreen(viewModel = hiltViewModel(), onNavigateToFuelPrices = { navController.navigate(FuelPricesRoute) })
         }
         composable<FuelPricesRoute> {
             FuelPricesScreen(onBack = { navController.popBackStack() })

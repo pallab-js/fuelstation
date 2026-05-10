@@ -74,9 +74,10 @@ fun InventoryScreen(
                 }
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    items(state.tanks) { tank ->
+                    items(state.tanks, key = { it.id }) { tank ->
                         TankCard(
                             tank = tank,
+                            fuelTypeName = viewModel.getFuelTypeName(tank.fuelTypeId),
                             isLowStock = viewModel.isLowStock(tank),
                             onRefill = { viewModel.showRefillDialog(tank.id) }
                         )
@@ -115,7 +116,7 @@ private fun RefillBottomSheet(viewModel: InventoryViewModel, state: InventoryUiS
             )
             if (tank != null) {
                 Text(
-                    text = "${tank.fuelTypeId.replaceFirstChar { it.uppercase() }} — ${tank.currentStockLiters.toInt()} / ${tank.capacityLiters.toInt()} L",
+                    text = "${state.fuelTypeNames[tank.fuelTypeId] ?: tank.fuelTypeId.replaceFirstChar { it.uppercase() }} — ${tank.currentStockLiters.toInt()} / ${tank.capacityLiters.toInt()} L",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -156,11 +157,13 @@ private fun RefillBottomSheet(viewModel: InventoryViewModel, state: InventoryUiS
 @Composable
 private fun TankCard(
     tank: TankEntity,
+    fuelTypeName: String,
     isLowStock: Boolean,
     onRefill: () -> Unit = {}
 ) {
-    val stockFraction = (tank.currentStockLiters / tank.capacityLiters).toFloat().coerceIn(0f, 1f)
-    val fuelLabel = tank.fuelTypeId.replaceFirstChar { it.uppercase() }
+    val stockFraction = if (tank.capacityLiters > 0) {
+        (tank.currentStockLiters / tank.capacityLiters).toFloat().coerceIn(0f, 1f)
+    } else 0f
 
     StatsCard {
         Row(
@@ -168,7 +171,7 @@ private fun TankCard(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(fuelLabel, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(fuelTypeName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 if (isLowStock) {
                     Icon(

@@ -5,9 +5,10 @@ A modern fuel station management app built with **Kotlin**, **Jetpack Compose**,
 ## Features
 
 - **Sales**: Real-time total calculation, fuel type selection, multiple payment modes, custom numpad
-- **Shift Management**: Start/end shift with meter reading validation and active shift tracking
-- **Inventory**: Fuel tank stock monitoring with capacity tracking
-- **Analytics**: Revenue trends and fuel distribution charts via Vico
+- **Shift Management**: Start/end shift with meter reading validation, confirmation dialog, and active shift tracking
+- **Inventory**: Fuel tank stock monitoring with refill, overfill protection, low-stock warnings, and fuel price management
+- **Sales History**: Paginated sale list with void functionality (restores stock automatically)
+- **Analytics**: Revenue trends, fuel breakdown, and CSV export with period selection (Today/Week/Month)
 - **Authentication**: PIN-based and biometric login
 - **Offline-First**: Room database with reliable local persistence
 - **CI/CD**: Automated builds, linting, Detekt analysis, and tests
@@ -28,19 +29,24 @@ A modern fuel station management app built with **Kotlin**, **Jetpack Compose**,
 ## Project Structure
 
 ```
-app/src/main/java/com/yourcompany/pumpmanager/
+app/src/main/kotlin/com/pallab/pumpmanager/
 ├── core/               # Theme, database, navigation, shared UI
 │   ├── theme/
 │   ├── database/
 │   ├── navigation/
-│   └── ui/
+│   ├── session/
+│   ├── ui/
+│   └── util/
 └── feature/            # Domain features
     ├── auth/
     ├── dashboard/
-    ├── sales/
-    ├── shift/
+    ├── fuelprices/
     ├── inventory/
-    └── reports/
+    ├── reports/
+    ├── sales/
+    ├── saleshistory/
+    ├── shift/
+    └── splash/
 ```
 
 ## Requirements
@@ -61,8 +67,9 @@ cd fuelstation
 ## Testing
 
 ```bash
-./gradlew test                    # Unit tests
-./gradlew koverHtmlReport         # Coverage report
+./gradlew testDebugUnitTest               # Unit tests
+./gradlew compileDebugAndroidTestKotlin   # Compile instrumented tests
+./gradlew koverHtmlReport                 # Coverage report
 ```
 
 ## License

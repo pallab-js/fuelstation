@@ -28,6 +28,7 @@ fun ShiftScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val summaryData = state.summaryData
+    var showEndConfirmDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(state.errorMessage) {
         state.errorMessage?.let {
@@ -36,23 +37,57 @@ fun ShiftScreen(
         }
     }
 
+    LaunchedEffect(state.isShiftStarted) {
+        if (state.isShiftStarted) {
+            snackbarHostState.showSnackbar("Shift started successfully")
+            viewModel.onEvent(ShiftEvent.DismissStarted)
+        }
+    }
+
     if (state.isShiftEnded && summaryData != null) {
         ShiftSummaryDialog(
             summary = summaryData,
-            onDismiss = { viewModel.onEvent(ShiftEvent.DismissError) }
+            onDismiss = { viewModel.onEvent(ShiftEvent.DismissSummary) }
+        )
+    }
+
+    if (showEndConfirmDialog && state.activeShift != null) {
+        AlertDialog(
+            onDismissRequest = { showEndConfirmDialog = false },
+            title = { Text("End Shift") },
+            text = {
+                Text("Are you sure you want to close the current shift? This action cannot be undone.")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showEndConfirmDialog = false
+                        viewModel.onEvent(ShiftEvent.EndShift)
+                    }
+                ) {
+                    Text("Close Shift", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEndConfirmDialog = false }) {
+                    Text("Cancel")
+                }
+            }
         )
     }
 
     ShiftContent(
         state = state,
-        onEvent = viewModel::onEvent
+        onEvent = viewModel::onEvent,
+        onEndShiftClick = { showEndConfirmDialog = true }
     )
 }
 
 @Composable
 private fun ShiftContent(
     state: ShiftUiState,
-    onEvent: (ShiftEvent) -> Unit
+    onEvent: (ShiftEvent) -> Unit,
+    onEndShiftClick: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -80,17 +115,8 @@ private fun ShiftContent(
                 shift = state.activeShift,
                 closingMeter = state.closingMeter,
                 onMeterChange = { onEvent(ShiftEvent.ClosingMeterChanged(it)) },
-                onEndClick = { onEvent(ShiftEvent.EndShift) },
+                onEndClick = onEndShiftClick,
                 isLoading = state.isLoading
-            )
-        }
-
-        state.errorMessage?.let { error ->
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = error,
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodyMedium
             )
         }
     }
@@ -109,20 +135,20 @@ private fun StartShiftForm(
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold
         )
-        
+
         Spacer(modifier = Modifier.height(16.dp))
-        
+
         OutlinedTextField(
             value = openingMeter,
             onValueChange = onMeterChange,
             label = { Text("Opening Meter Reading") },
             modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             shape = MaterialTheme.shapes.small
         )
-        
+
         Spacer(modifier = Modifier.height(24.dp))
-        
+
         Button(
             onClick = onStartClick,
             modifier = Modifier.fillMaxWidth().height(48.dp),
@@ -179,15 +205,15 @@ private fun ActiveShiftDashboard(
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(20.dp))
-            
+
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
-            
+
             Spacer(modifier = Modifier.height(20.dp))
-            
+
             Row(modifier = Modifier.fillMaxWidth()) {
-                InfoBlock(label = "Attendant", value = "Pallab", modifier = Modifier.weight(1f))
+                InfoBlock(label = "Attendant", value = shift.attendantId, modifier = Modifier.weight(1f))
                 InfoBlock(label = "Opening Meter", value = shift.openingMeterReading.toString(), modifier = Modifier.weight(1f))
             }
         }
@@ -198,20 +224,20 @@ private fun ActiveShiftDashboard(
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             OutlinedTextField(
                 value = closingMeter,
                 onValueChange = onMeterChange,
                 label = { Text("Closing Meter Reading") },
                 modifier = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 shape = MaterialTheme.shapes.small
             )
-            
+
             Spacer(modifier = Modifier.height(24.dp))
-            
+
             Button(
                 onClick = onEndClick,
                 modifier = Modifier.fillMaxWidth().height(48.dp),
@@ -279,7 +305,7 @@ fun ShiftScreenPreview() {
             state = ShiftUiState(
                 activeShift = ShiftEntity(
                     id = "1",
-                    attendantId = "1",
+                    attendantId = "Pallab",
                     startTime = System.currentTimeMillis(),
                     endTime = null,
                     openingMeterReading = 12500.0,
@@ -287,7 +313,8 @@ fun ShiftScreenPreview() {
                     status = "active"
                 )
             ),
-            onEvent = {}
+            onEvent = {},
+            onEndShiftClick = {}
         )
     }
 }

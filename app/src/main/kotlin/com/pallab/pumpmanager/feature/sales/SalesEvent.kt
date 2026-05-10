@@ -9,4 +9,5 @@ sealed interface SalesEvent {
     data class PaymentModeChanged(val mode: PaymentMode) : SalesEvent
     object SaveSale : SalesEvent
     object DismissError : SalesEvent
+    object DismissSuccess : SalesEvent
 }

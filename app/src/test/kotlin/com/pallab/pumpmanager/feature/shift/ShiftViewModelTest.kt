@@ -79,6 +79,24 @@ class ShiftViewModelTest {
     }
 
     @Test
+    fun `opening meter zero shows error`() = runTest {
+        viewModel.onEvent(ShiftEvent.OpeningMeterChanged("0"))
+        viewModel.onEvent(ShiftEvent.StartShift)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("Opening meter reading must be greater than 0", viewModel.state.value.errorMessage)
+    }
+
+    @Test
+    fun `opening meter negative shows error`() = runTest {
+        viewModel.onEvent(ShiftEvent.OpeningMeterChanged("-100"))
+        viewModel.onEvent(ShiftEvent.StartShift)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("Opening meter reading must be greater than 0", viewModel.state.value.errorMessage)
+    }
+
+    @Test
     fun `closing meter below opening shows error`() = runTest {
         val activeShift = ShiftEntity("s1", "user-1", 0L, null, 1000.0, null, "active")
         every { shiftRepository.getActiveShift() } returns flowOf(activeShift)
@@ -102,6 +120,19 @@ class ShiftViewModelTest {
         viewModel.onEvent(ShiftEvent.EndShift)
 
         assertNotNull(viewModel.state.value.errorMessage)
+    }
+
+    @Test
+    fun `invalid closing meter shows invalid error`() = runTest {
+        val activeShift = ShiftEntity("s1", "user-1", 0L, null, 1000.0, null, "active")
+        every { shiftRepository.getActiveShift() } returns flowOf(activeShift)
+        viewModel = ShiftViewModel(shiftRepository, salesRepository, sessionManager, clock, idGenerator)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onEvent(ShiftEvent.ClosingMeterChanged("abc"))
+        viewModel.onEvent(ShiftEvent.EndShift)
+
+        assertEquals("Invalid closing meter reading", viewModel.state.value.errorMessage)
     }
 
     @Test

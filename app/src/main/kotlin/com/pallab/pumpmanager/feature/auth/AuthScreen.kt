@@ -108,7 +108,7 @@ private fun UserPickerScreen(
 }
 
 @Composable
-private fun AuthContent(
+internal fun AuthContent(
     state: AuthUiState,
     onEvent: (AuthEvent) -> Unit,
     isBiometricAvailable: Boolean = false,

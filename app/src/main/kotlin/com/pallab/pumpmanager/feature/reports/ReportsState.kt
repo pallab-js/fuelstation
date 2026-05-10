@@ -4,11 +4,10 @@ enum class Period { TODAY, WEEK, MONTH }
 
 data class ReportsUiState(
     val selectedPeriod: Period = Period.TODAY,
-    val totalRevenueToday: Double = 0.0,
-    val totalSalesCountToday: Int = 0,
+    val totalRevenue: Double = 0.0,
+    val totalSalesCount: Int = 0,
     val fuelTypeBreakdown: Map<String, Double> = emptyMap(),
-    val weeklyRevenueTrend: List<Pair<String, Double>> = emptyList(),
-    val isExporting: Boolean = false,
+    val revenueTrend: List<Pair<String, Double>> = emptyList(),
     val isLoading: Boolean = false,
     val errorMessage: String? = null
 )

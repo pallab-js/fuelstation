@@ -9,6 +9,7 @@ interface InventoryRepository {
     suspend fun getTankById(id: String): TankEntity?
     fun getLowStockTanks(): Flow<List<TankEntity>>
     suspend fun decrementStock(fuelTypeId: String, liters: Double): Int
+    suspend fun incrementStockByFuelTypeId(fuelTypeId: String, liters: Double): Int
     suspend fun addStock(tankId: String, liters: Double): Int
     fun getActiveFuelTypes(): Flow<List<FuelTypeEntity>>
     fun getAllFuelTypes(): Flow<List<FuelTypeEntity>>
@@ -26,6 +27,7 @@ class InventoryRepositoryImpl @Inject constructor(
     override suspend fun getTankById(id: String) = tankDao.getTankById(id)
     override fun getLowStockTanks() = tankDao.getLowStockTanks()
     override suspend fun decrementStock(fuelTypeId: String, liters: Double) = tankDao.decrementStock(fuelTypeId, liters)
+    override suspend fun incrementStockByFuelTypeId(fuelTypeId: String, liters: Double) = tankDao.incrementStockByFuelTypeId(fuelTypeId, liters)
     override suspend fun addStock(tankId: String, liters: Double) = tankDao.addStock(tankId, liters)
     override fun getActiveFuelTypes() = fuelTypeDao.getActiveFuelTypes()
     override fun getAllFuelTypes() = fuelTypeDao.getAllFuelTypes()
