@@ -62,6 +62,7 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation("androidx.compose.material:material-icons-extended")
     implementation(libs.material)
+    implementation("androidx.compose.ui:ui-text-google-fonts:1.7.8")
     
     // Navigation
     implementation(libs.navigation.compose)

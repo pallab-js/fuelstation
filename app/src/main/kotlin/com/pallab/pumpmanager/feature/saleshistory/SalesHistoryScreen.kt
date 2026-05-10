@@ -1,19 +1,30 @@
 package com.pallab.pumpmanager.feature.saleshistory
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Circle
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.paging.compose.collectAsLazyPagingItems
+import com.pallab.pumpmanager.core.theme.AmberWarning
+import com.pallab.pumpmanager.core.theme.AppShapes
+import com.pallab.pumpmanager.core.theme.Green500
+import com.pallab.pumpmanager.core.ui.PmTopBar
 import com.pallab.pumpmanager.feature.sales.SaleEntity
 import java.time.Instant
 import java.time.ZoneId
@@ -49,35 +60,25 @@ fun SalesHistoryScreen(
         AlertDialog(
             onDismissRequest = { saleToVoid = null },
             title = { Text("Void Sale") },
-            text = {
-                Text("Are you sure you want to void this ${sale.fuelType.replaceFirstChar { it.uppercase() }} sale of ${sale.volumeLiters.toInt()} L (₹${"%.0f".format(sale.totalAmount)})? Stock will be restored.")
-            },
+            text = { Text("Are you sure you want to void this ${sale.fuelType.replaceFirstChar { it.uppercase() }} sale of ${sale.volumeLiters.toInt()} L (₹${"%.0f".format(sale.totalAmount)})? Stock will be restored.") },
             confirmButton = {
-                TextButton(
-                    onClick = {
-                        viewModel.voidSale(sale)
-                        saleToVoid = null
-                    },
-                    enabled = voidState !is VoidState.Loading
-                ) {
+                TextButton(onClick = { viewModel.voidSale(sale); saleToVoid = null }, enabled = voidState !is VoidState.Loading) {
                     Text("Void", color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { saleToVoid = null }) {
-                    Text("Cancel")
-                }
+                TextButton(onClick = { saleToVoid = null }) { Text("Cancel") }
             }
         )
     }
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Sales History") },
+            PmTopBar(
+                title = "Sales History",
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }
             )
@@ -94,38 +95,29 @@ fun SalesHistoryScreen(
             modifier = Modifier.fillMaxSize().padding(padding)
         ) {
             if (salesItems.itemCount == 0 && salesItems.loadState.refresh is androidx.paging.LoadState.Loading) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
             } else {
+                val grouped = (0 until salesItems.itemCount)
+                    .mapNotNull { salesItems[it] }
+                    .groupBy { formatGroupDate(it.timestamp) }
+
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    items(count = salesItems.itemCount) { index ->
-                        val sale = salesItems[index]
-                        if (sale != null) {
+                    grouped.forEach { (date, sales) ->
+                        item(key = "header_$date") {
+                            DateSectionHeader(date)
+                        }
+                        items(sales, key = { it.id }) { sale ->
                             SaleHistoryCard(
                                 sale = sale,
                                 onVoidClick = { saleToVoid = sale },
                                 isVoiding = voidState is VoidState.Loading
                             )
-                        }
-                    }
-                    salesItems.apply {
-                        when {
-                            loadState.append is androidx.paging.LoadState.Loading -> {
-                                item { Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() } }
-                            }
-                            loadState.append is androidx.paging.LoadState.Error -> {
-                                val e = loadState.append as androidx.paging.LoadState.Error
-                                item {
-                                    TextButton(onClick = { retry() }) {
-                                        Text("Error: ${e.error.message}. Tap to retry", color = MaterialTheme.colorScheme.error)
-                                    }
-                                }
-                            }
                         }
                     }
                 }
@@ -135,11 +127,29 @@ fun SalesHistoryScreen(
 }
 
 @Composable
+private fun DateSectionHeader(date: String) {
+    Text(
+        date,
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp)
+    )
+}
+
+@Composable
 private fun SaleHistoryCard(
     sale: SaleEntity,
     onVoidClick: () -> Unit,
     isVoiding: Boolean
 ) {
+    val isVoided = sale.totalAmount == 0.0 // heuristic: voided sales have 0 amount
+    val fuelDotColor = when {
+        sale.fuelType.contains("petrol", ignoreCase = true) -> Green500
+        sale.fuelType.contains("diesel", ignoreCase = true) -> Color(0xFF2563EB)
+        sale.fuelType.contains("cng", ignoreCase = true) -> Color(0xFFF59E0B)
+        else -> MaterialTheme.colorScheme.primary
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -151,19 +161,32 @@ private fun SaleHistoryCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(sale.fuelType.replaceFirstChar { it.uppercase() }, fontWeight = FontWeight.SemiBold)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Box(Modifier.size(8.dp).clip(CircleShape).background(fuelDotColor))
+                    Text(
+                        sale.fuelType.replaceFirstChar { it.uppercase() },
+                        fontWeight = FontWeight.SemiBold,
+                        textDecoration = if (isVoided) TextDecoration.LineThrough else TextDecoration.None
+                    )
+                    if (isVoided) {
+                        Surface(color = AmberWarning.copy(alpha = 0.2f), shape = AppShapes.small) {
+                            Text(
+                                "VOIDED",
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = AmberWarning,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
                 Text(
                     "${sale.volumeLiters.toInt()} L × ₹ ${"%.2f".format(sale.pricePerLiter)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    Instant.ofEpochMilli(sale.timestamp).atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("dd/MM hh:mm a")),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    sale.paymentMode,
+                    "${Instant.ofEpochMilli(sale.timestamp).atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("hh:mm a"))}  ·  ${sale.paymentMode}",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -172,18 +195,22 @@ private fun SaleHistoryCard(
                 "₹ ${"%.0f".format(sale.totalAmount)}",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
+                color = MaterialTheme.colorScheme.primary,
+                textDecoration = if (isVoided) TextDecoration.LineThrough else TextDecoration.None
             )
-            IconButton(
-                onClick = onVoidClick,
-                enabled = !isVoiding
-            ) {
-                Icon(
-                    Icons.Default.Delete,
-                    contentDescription = "Void sale",
-                    tint = MaterialTheme.colorScheme.error
-                )
+            IconButton(onClick = onVoidClick, enabled = !isVoiding) {
+                Icon(Icons.Default.Delete, contentDescription = "Void sale", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(20.dp))
             }
         }
+    }
+}
+
+private fun formatGroupDate(timestamp: Long): String {
+    val date = Instant.ofEpochMilli(timestamp).atZone(ZoneId.systemDefault()).toLocalDate()
+    val today = java.time.LocalDate.now()
+    return when (date) {
+        today -> "Today"
+        today.minusDays(1) -> "Yesterday"
+        else -> date.format(DateTimeFormatter.ofPattern("dd MMM yyyy"))
     }
 }

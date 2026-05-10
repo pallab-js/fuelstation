@@ -1,5 +1,10 @@
 package com.pallab.pumpmanager.core.navigation
 
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -35,7 +40,10 @@ fun AppNavHost(
         startDestination = SplashRoute,
         modifier = modifier
     ) {
-        composable<SplashRoute> {
+        composable<SplashRoute>(
+            enterTransition = { fadeIn(tween(300)) },
+            exitTransition = { fadeOut(tween(200)) }
+        ) {
             val splashViewModel: SplashViewModel = hiltViewModel()
             val splashState by splashViewModel.state.collectAsState()
 
@@ -49,7 +57,12 @@ fun AppNavHost(
 
             SplashScreen()
         }
-        composable<AuthRoute> {
+        composable<AuthRoute>(
+            enterTransition = { fadeIn(tween(300)) + slideInHorizontally { it / 4 } },
+            exitTransition = { fadeOut(tween(200)) + slideOutHorizontally { -it / 4 } },
+            popEnterTransition = { fadeIn(tween(300)) + slideInHorizontally { -it / 4 } },
+            popExitTransition = { fadeOut(tween(200)) + slideOutHorizontally { it / 4 } }
+        ) {
             AuthScreen(
                 viewModel = hiltViewModel(),
                 snackbarHostState = snackbarHostState,
@@ -60,7 +73,12 @@ fun AppNavHost(
                 }
             )
         }
-        composable<SetPinRoute> {
+        composable<SetPinRoute>(
+            enterTransition = { fadeIn(tween(300)) + slideInHorizontally { it / 4 } },
+            exitTransition = { fadeOut(tween(200)) + slideOutHorizontally { -it / 4 } },
+            popEnterTransition = { fadeIn(tween(300)) + slideInHorizontally { -it / 4 } },
+            popExitTransition = { fadeOut(tween(200)) + slideOutHorizontally { it / 4 } }
+        ) {
             SetPinScreen(
                 viewModel = hiltViewModel(),
                 onPinSet = {
@@ -70,38 +88,73 @@ fun AppNavHost(
                 }
             )
         }
-        composable<DashboardRoute> {
+        composable<DashboardRoute>(
+            enterTransition = { fadeIn(tween(300)) + slideInHorizontally { it / 4 } },
+            exitTransition = { fadeOut(tween(200)) + slideOutHorizontally { -it / 4 } },
+            popEnterTransition = { fadeIn(tween(300)) + slideInHorizontally { -it / 4 } },
+            popExitTransition = { fadeOut(tween(200)) + slideOutHorizontally { it / 4 } }
+        ) {
             DashboardScreen(
                 snackbarHostState = snackbarHostState,
                 onNavigateToFuelPrices = { navController.navigate(FuelPricesRoute) },
                 onNavigateToSalesHistory = { navController.navigate(SalesHistoryRoute) }
             )
         }
-        composable<SalesRoute> {
+        composable<SalesRoute>(
+            enterTransition = { fadeIn(tween(300)) + slideInHorizontally { it / 4 } },
+            exitTransition = { fadeOut(tween(200)) + slideOutHorizontally { -it / 4 } },
+            popEnterTransition = { fadeIn(tween(300)) + slideInHorizontally { -it / 4 } },
+            popExitTransition = { fadeOut(tween(200)) + slideOutHorizontally { it / 4 } }
+        ) {
             SalesScreen(
                 viewModel = hiltViewModel(),
                 snackbarHostState = snackbarHostState
             )
         }
-        composable<ShiftRoute> {
+        composable<ShiftRoute>(
+            enterTransition = { fadeIn(tween(300)) + slideInHorizontally { it / 4 } },
+            exitTransition = { fadeOut(tween(200)) + slideOutHorizontally { -it / 4 } },
+            popEnterTransition = { fadeIn(tween(300)) + slideInHorizontally { -it / 4 } },
+            popExitTransition = { fadeOut(tween(200)) + slideOutHorizontally { it / 4 } }
+        ) {
             ShiftScreen(
                 viewModel = hiltViewModel(),
                 snackbarHostState = snackbarHostState
             )
         }
-        composable<ReportsRoute> {
+        composable<ReportsRoute>(
+            enterTransition = { fadeIn(tween(300)) + slideInHorizontally { it / 4 } },
+            exitTransition = { fadeOut(tween(200)) + slideOutHorizontally { -it / 4 } },
+            popEnterTransition = { fadeIn(tween(300)) + slideInHorizontally { -it / 4 } },
+            popExitTransition = { fadeOut(tween(200)) + slideOutHorizontally { it / 4 } }
+        ) {
             ReportsScreen(
                 viewModel = hiltViewModel(),
                 snackbarHostState = snackbarHostState
             )
         }
-        composable<InventoryRoute> {
+        composable<InventoryRoute>(
+            enterTransition = { fadeIn(tween(300)) + slideInHorizontally { it / 4 } },
+            exitTransition = { fadeOut(tween(200)) + slideOutHorizontally { -it / 4 } },
+            popEnterTransition = { fadeIn(tween(300)) + slideInHorizontally { -it / 4 } },
+            popExitTransition = { fadeOut(tween(200)) + slideOutHorizontally { it / 4 } }
+        ) {
             InventoryScreen(viewModel = hiltViewModel(), onNavigateToFuelPrices = { navController.navigate(FuelPricesRoute) })
         }
-        composable<FuelPricesRoute> {
+        composable<FuelPricesRoute>(
+            enterTransition = { fadeIn(tween(300)) + slideInHorizontally { it / 4 } },
+            exitTransition = { fadeOut(tween(200)) + slideOutHorizontally { -it / 4 } },
+            popEnterTransition = { fadeIn(tween(300)) + slideInHorizontally { -it / 4 } },
+            popExitTransition = { fadeOut(tween(200)) + slideOutHorizontally { it / 4 } }
+        ) {
             FuelPricesScreen(onBack = { navController.popBackStack() })
         }
-        composable<SalesHistoryRoute> {
+        composable<SalesHistoryRoute>(
+            enterTransition = { fadeIn(tween(300)) + slideInHorizontally { it / 4 } },
+            exitTransition = { fadeOut(tween(200)) + slideOutHorizontally { -it / 4 } },
+            popEnterTransition = { fadeIn(tween(300)) + slideInHorizontally { -it / 4 } },
+            popExitTransition = { fadeOut(tween(200)) + slideOutHorizontally { it / 4 } }
+        ) {
             SalesHistoryScreen(onBack = { navController.popBackStack() })
         }
     }

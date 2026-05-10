@@ -1,11 +1,17 @@
 package com.pallab.pumpmanager.feature.sales
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardBackspace
@@ -16,13 +22,15 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.pallab.pumpmanager.core.theme.PumpManagerTheme
+import com.pallab.pumpmanager.core.theme.AppShapes
+import com.pallab.pumpmanager.core.ui.PmCard
+import com.pallab.pumpmanager.core.ui.PmPrimaryButton
+import com.pallab.pumpmanager.core.ui.PmSelectableChip
+import com.pallab.pumpmanager.core.ui.PmTopBar
 
 @Composable
 fun SalesScreen(
@@ -62,21 +70,18 @@ internal fun SalesContent(
             .background(MaterialTheme.colorScheme.background)
             .padding(24.dp)
     ) {
+
         Text(
-            text = "New Sale",
+            "New Sale",
             style = MaterialTheme.typography.headlineLarge,
             color = MaterialTheme.colorScheme.onBackground
         )
+        Spacer(Modifier.height(16.dp))
 
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Fuel Type Selector
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            state.fuelTypes.forEach { fuel ->
-                FuelChip(
+        // Fuel Chips
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(state.fuelTypes, key = { it.id }) { fuel ->
+                PmSelectableChip(
                     label = fuel.name,
                     selected = state.selectedFuel?.id == fuel.id,
                     onClick = { onEvent(SalesEvent.FuelSelected(fuel)) }
@@ -84,71 +89,91 @@ internal fun SalesContent(
             }
         }
 
-        Spacer(modifier = Modifier.height(48.dp))
+        Spacer(Modifier.height(32.dp))
 
-        // Large Total Display
+        // Total display with animation
         Column(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            AnimatedContent(
+                targetState = state.calculatedTotal,
+                transitionSpec = {
+                    (slideInVertically { -it } + fadeIn())
+                        .togetherWith(slideOutVertically { it } + fadeOut())
+                },
+                label = "totalAmount"
+            ) { total ->
+                Text(
+                    "₹ ${"%.2f".format(total)}",
+                    style = MaterialTheme.typography.displayLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
             Text(
-                text = "₹ ${String.format("%.2f", state.calculatedTotal)}",
-                style = MaterialTheme.typography.displayLarge,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Text(
-                text = "${state.volume.ifEmpty { "0" }} Liters @ ₹${"%.2f".format(state.pricePerLiter)}",
-                style = MaterialTheme.typography.bodyLarge,
+                "${state.volume.ifEmpty { "0" }} L @ ₹${"%.2f".format(state.pricePerLiter)}/L",
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
 
-        Spacer(modifier = Modifier.weight(1f))
+        Spacer(Modifier.weight(1f))
 
-        // Payment Mode
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            PaymentMode.values().forEach { mode ->
-                FilterChip(
+        // Payment mode
+        Text("Payment Mode", style = MaterialTheme.typography.labelMedium)
+        Spacer(Modifier.height(8.dp))
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(PaymentMode.entries) { mode ->
+                PmSelectableChip(
+                    label = mode.name,
                     selected = state.paymentMode == mode,
-                    onClick = { onEvent(SalesEvent.PaymentModeChanged(mode)) },
-                    label = { Text(mode.name) }
+                    onClick = { onEvent(SalesEvent.PaymentModeChanged(mode)) }
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(Modifier.height(24.dp))
 
-        // Numpad and Save Button
-        Row(
+        // Numpad
+        NumpadGrid(
+            onDigitClick = { onEvent(SalesEvent.VolumeDigitEntered(it)) },
+            onDeleteClick = { onEvent(SalesEvent.VolumeDeleted) }
+        )
+
+        Spacer(Modifier.height(16.dp))
+
+        // Save button
+        PmPrimaryButton(
+            text = if (state.isLoading) "Saving..." else "Save Sale",
+            onClick = { onEvent(SalesEvent.SaveSale) },
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.Bottom
-        ) {
-            Box(modifier = Modifier.weight(1f)) {
-                VolumeNumpad(
-                    onDigitClick = { onEvent(SalesEvent.VolumeDigitEntered(it)) },
-                    onDeleteClick = { onEvent(SalesEvent.VolumeDeleted) }
-                )
-            }
-            
-            Spacer(modifier = Modifier.width(24.dp))
-            
-            Button(
-                onClick = { onEvent(SalesEvent.SaveSale) },
-                modifier = Modifier
-                    .height(64.dp)
-                    .weight(0.6f),
-                shape = MaterialTheme.shapes.small,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                )
+            isLoading = state.isLoading
+        )
+    }
+}
+
+@Composable
+private fun NumpadGrid(
+    onDigitClick: (String) -> Unit,
+    onDeleteClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        listOf(listOf("1", "2", "3"), listOf("4", "5", "6"), listOf("7", "8", "9"), listOf(".", "0", "DEL")).forEach { row ->
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                if (state.isLoading) {
-                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-                } else {
-                    Text("Save Sale", style = MaterialTheme.typography.titleLarge)
+                row.forEach { key ->
+                    NumpadButton(key = key, onClick = {
+                        when (key) {
+                            "DEL" -> onDeleteClick()
+                            else -> onDigitClick(key)
+                        }
+                    })
                 }
             }
         }
@@ -156,78 +181,28 @@ internal fun SalesContent(
 }
 
 @Composable
-private fun FuelChip(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit
-) {
+private fun NumpadButton(key: String, onClick: () -> Unit) {
     Surface(
-        modifier = Modifier
-            .clip(MaterialTheme.shapes.extraLarge)
-            .clickable { onClick() },
-        color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
-        border = if (!selected) ButtonDefaults.outlinedButtonBorder else null
+        onClick = onClick,
+        modifier = Modifier.size(60.dp),
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 2.dp,
+        shadowElevation = 0.dp
     ) {
-        Text(
-            text = label,
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-            style = MaterialTheme.typography.bodyMedium,
-            color = if (selected) Color.White else MaterialTheme.colorScheme.onSurface
-        )
-    }
-}
-
-@Composable
-private fun VolumeNumpad(
-    onDigitClick: (String) -> Unit,
-    onDeleteClick: () -> Unit
-) {
-    val digits = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "0", "DEL")
-    
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(3),
-        modifier = Modifier.width(180.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        items(digits) { item ->
-            when (item) {
-                "DEL" -> NumpadButton(icon = Icons.AutoMirrored.Filled.KeyboardBackspace, onClick = onDeleteClick)
-                else -> NumpadButton(text = item, onClick = { onDigitClick(item) })
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            if (key == "DEL") {
+                Icon(
+                    Icons.AutoMirrored.Filled.KeyboardBackspace,
+                    contentDescription = "Delete",
+                    modifier = Modifier.size(22.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            } else {
+                Text(key, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Medium)
             }
         }
     }
 }
 
-@Composable
-private fun NumpadButton(
-    text: String? = null,
-    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
-    onClick: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .size(48.dp)
-            .clip(MaterialTheme.shapes.small)
-            .background(MaterialTheme.colorScheme.surface)
-            .clickable { onClick() },
-        contentAlignment = Alignment.Center
-    ) {
-        if (text != null) {
-            Text(text = text, style = MaterialTheme.typography.titleMedium)
-        } else if (icon != null) {
-            Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(20.dp))
-        }
-    }
-}
 
-@Preview(showBackground = true)
-@Composable
-fun SalesScreenPreview() {
-    PumpManagerTheme {
-        SalesContent(
-            state = SalesUiState(volume = "15.5", calculatedTotal = 1588.75),
-            onEvent = {}
-        )
-    }
-}

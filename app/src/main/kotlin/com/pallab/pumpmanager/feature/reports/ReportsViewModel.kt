@@ -2,6 +2,7 @@ package com.pallab.pumpmanager.feature.reports
 
 import android.util.Log
 import androidx.lifecycle.ViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import androidx.lifecycle.viewModelScope
 import com.pallab.pumpmanager.feature.sales.SaleEntity
 import com.pallab.pumpmanager.feature.sales.SalesRepository
@@ -19,6 +20,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import javax.inject.Inject
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class ReportsViewModel @Inject constructor(
     private val saleRepository: SalesRepository

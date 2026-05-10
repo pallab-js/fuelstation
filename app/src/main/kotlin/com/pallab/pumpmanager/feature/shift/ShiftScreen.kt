@@ -1,5 +1,10 @@
 package com.pallab.pumpmanager.feature.shift
 
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
@@ -10,17 +15,25 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.pallab.pumpmanager.core.theme.PumpManagerTheme
-import com.pallab.pumpmanager.core.ui.StatsCard
+import com.pallab.pumpmanager.core.theme.AppShapes
+import com.pallab.pumpmanager.core.theme.Green500
+import com.pallab.pumpmanager.core.ui.PmCard
+import com.pallab.pumpmanager.core.ui.PmDestructiveButton
+import com.pallab.pumpmanager.core.ui.PmPrimaryButton
+import com.pallab.pumpmanager.core.ui.PmTopBar
+import kotlinx.coroutines.delay
+import java.time.Duration
 import java.time.Instant
+import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ShiftScreen(
     viewModel: ShiftViewModel,
@@ -29,6 +42,7 @@ fun ShiftScreen(
     val state by viewModel.state.collectAsState()
     val summaryData = state.summaryData
     var showEndConfirmDialog by remember { mutableStateOf(false) }
+    val sheetState = rememberModalBottomSheetState()
 
     LaunchedEffect(state.errorMessage) {
         state.errorMessage?.let {
@@ -45,81 +59,90 @@ fun ShiftScreen(
     }
 
     if (state.isShiftEnded && summaryData != null) {
-        ShiftSummaryDialog(
-            summary = summaryData,
-            onDismiss = { viewModel.onEvent(ShiftEvent.DismissSummary) }
-        )
+        ModalBottomSheet(
+            onDismissRequest = { viewModel.onEvent(ShiftEvent.DismissSummary) },
+            sheetState = sheetState
+        ) {
+            ShiftSummaryContent(summary = summaryData)
+        }
     }
 
     if (showEndConfirmDialog && state.activeShift != null) {
         AlertDialog(
             onDismissRequest = { showEndConfirmDialog = false },
             title = { Text("End Shift") },
-            text = {
-                Text("Are you sure you want to close the current shift? This action cannot be undone.")
-            },
+            text = { Text("Are you sure you want to close the current shift? This action cannot be undone.") },
             confirmButton = {
-                TextButton(
-                    onClick = {
-                        showEndConfirmDialog = false
-                        viewModel.onEvent(ShiftEvent.EndShift)
-                    }
-                ) {
+                TextButton(onClick = {
+                    showEndConfirmDialog = false
+                    viewModel.onEvent(ShiftEvent.EndShift)
+                }) {
                     Text("Close Shift", color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showEndConfirmDialog = false }) {
-                    Text("Cancel")
-                }
+                TextButton(onClick = { showEndConfirmDialog = false }) { Text("Cancel") }
             }
         )
     }
 
-    ShiftContent(
-        state = state,
-        onEvent = viewModel::onEvent,
-        onEndShiftClick = { showEndConfirmDialog = true }
-    )
+    Column(
+        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
+    ) {
+        ShiftTopBar(activeShift = state.activeShift)
+
+        Column(modifier = Modifier.padding(24.dp)) {
+            val activeShift = state.activeShift
+            if (activeShift == null) {
+                StartShiftForm(
+                    openingMeter = state.openingMeter,
+                    onMeterChange = { viewModel.onEvent(ShiftEvent.OpeningMeterChanged(it)) },
+                    onStartClick = { viewModel.onEvent(ShiftEvent.StartShift) },
+                    isLoading = state.isLoading
+                )
+            } else {
+                ActiveShiftDashboard(
+                    shift = activeShift,
+                    closingMeter = state.closingMeter,
+                    onMeterChange = { viewModel.onEvent(ShiftEvent.ClosingMeterChanged(it)) },
+                    onEndClick = { showEndConfirmDialog = true },
+                    isLoading = state.isLoading
+                )
+            }
+        }
+    }
 }
 
 @Composable
-private fun ShiftContent(
-    state: ShiftUiState,
-    onEvent: (ShiftEvent) -> Unit,
-    onEndShiftClick: () -> Unit = {}
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(24.dp)
-    ) {
-        Text(
-            text = "Shift Management",
-            style = MaterialTheme.typography.headlineLarge,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        if (state.activeShift == null) {
-            StartShiftForm(
-                openingMeter = state.openingMeter,
-                onMeterChange = { onEvent(ShiftEvent.OpeningMeterChanged(it)) },
-                onStartClick = { onEvent(ShiftEvent.StartShift) },
-                isLoading = state.isLoading
-            )
-        } else {
-            ActiveShiftDashboard(
-                shift = state.activeShift,
-                closingMeter = state.closingMeter,
-                onMeterChange = { onEvent(ShiftEvent.ClosingMeterChanged(it)) },
-                onEndClick = onEndShiftClick,
-                isLoading = state.isLoading
-            )
+private fun ShiftTopBar(activeShift: com.pallab.pumpmanager.feature.shift.ShiftEntity?) {
+    PmTopBar(
+        title = "Shift Management",
+        actions = {
+            if (activeShift != null) {
+                val pulseAnim by rememberInfiniteTransition().animateFloat(
+                    initialValue = 0.7f, targetValue = 1.0f,
+                    animationSpec = infiniteRepeatable(tween(900), RepeatMode.Reverse),
+                    label = "pulse"
+                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.padding(end = 12.dp)
+                ) {
+                    Box(Modifier.size(8.dp).scale(pulseAnim).background(Green500, AppShapes.extraSmall))
+                    Surface(color = Green500, shape = AppShapes.extraSmall) {
+                        Text(
+                            "LIVE",
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
         }
-    }
+    )
 }
 
 @Composable
@@ -129,139 +152,116 @@ private fun StartShiftForm(
     onStartClick: () -> Unit,
     isLoading: Boolean
 ) {
-    StatsCard {
-        Text(
-            text = "Start New Shift",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
+    PmCard(accentColor = MaterialTheme.colorScheme.primary, modifier = Modifier.fillMaxWidth()) {
+        Text("Ready to start?", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(16.dp))
         OutlinedTextField(
             value = openingMeter,
             onValueChange = onMeterChange,
             label = { Text("Opening Meter Reading") },
             modifier = Modifier.fillMaxWidth(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            shape = MaterialTheme.shapes.small
+            shape = AppShapes.small
         )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Button(
-            onClick = onStartClick,
-            modifier = Modifier.fillMaxWidth().height(48.dp),
-            shape = MaterialTheme.shapes.small,
-            enabled = !isLoading
-        ) {
-            if (isLoading) {
-                CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
-            } else {
-                Icon(Icons.Default.PlayArrow, contentDescription = "Start shift")
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Initialize Shift")
-            }
-        }
+        Spacer(Modifier.height(24.dp))
+        PmPrimaryButton("Initialize Shift", onClick = onStartClick, modifier = Modifier.fillMaxWidth(), isLoading = isLoading)
     }
 }
 
 @Composable
 private fun ActiveShiftDashboard(
-    shift: ShiftEntity,
+    shift: com.pallab.pumpmanager.feature.shift.ShiftEntity,
     closingMeter: String,
     onMeterChange: (String) -> Unit,
     onEndClick: () -> Unit,
     isLoading: Boolean
 ) {
+    var elapsed by remember { mutableStateOf("") }
+    LaunchedEffect(shift.startTime) {
+        while (true) {
+            val duration = Duration.between(
+                Instant.ofEpochMilli(shift.startTime).atZone(ZoneId.systemDefault()).toLocalTime(),
+                LocalTime.now()
+            )
+            val absDuration = if (duration.isNegative) duration.negated() else duration
+            elapsed = "%dh %02dm".format(absDuration.toHours(), absDuration.toMinutesPart())
+            delay(60_000L)
+        }
+    }
+
     Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
-        StatsCard {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = "Active Shift",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = "Started at ${formatTime(shift.startTime)}",
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                }
-                Surface(
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                    shape = MaterialTheme.shapes.extraLarge
-                ) {
-                    Text(
-                        text = "LIVE",
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
+        PmCard(accentColor = Green500, modifier = Modifier.fillMaxWidth()) {
+            Text("Active Shift", style = MaterialTheme.typography.labelLarge, color = Green500)
+            Text(
+                "Started ${formatTime(shift.startTime)}",
+                style = MaterialTheme.typography.titleMedium
+            )
+            Text("Duration: $elapsed", style = MaterialTheme.typography.bodyMedium)
+            Spacer(Modifier.height(12.dp))
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Row(modifier = Modifier.fillMaxWidth()) {
+            Spacer(Modifier.height(12.dp))
+            Row(Modifier.fillMaxWidth()) {
                 InfoBlock(label = "Attendant", value = shift.attendantId, modifier = Modifier.weight(1f))
-                InfoBlock(label = "Opening Meter", value = shift.openingMeterReading.toString(), modifier = Modifier.weight(1f))
+                InfoBlock(label = "Opening Meter", value = shift.openingMeterReading.toInt().toString(), modifier = Modifier.weight(1f))
             }
         }
 
-        StatsCard {
-            Text(
-                text = "End Shift",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
+        PmCard(accentColor = com.pallab.pumpmanager.core.theme.RedError, modifier = Modifier.fillMaxWidth()) {
+            Text("Close This Shift", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(16.dp))
             OutlinedTextField(
                 value = closingMeter,
                 onValueChange = onMeterChange,
                 label = { Text("Closing Meter Reading") },
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                shape = MaterialTheme.shapes.small
+                shape = AppShapes.small
             )
+            Spacer(Modifier.height(24.dp))
+            PmDestructiveButton("Close Shift", onClick = onEndClick, modifier = Modifier.fillMaxWidth())
+        }
+    }
+}
 
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Button(
-                onClick = onEndClick,
-                modifier = Modifier.fillMaxWidth().height(48.dp),
-                shape = MaterialTheme.shapes.small,
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-                enabled = !isLoading
-            ) {
-                if (isLoading) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
-                } else {
-                    Icon(Icons.Default.Clear, contentDescription = "Stop shift")
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Close Shift")
+@Composable
+private fun ShiftSummaryContent(summary: ShiftSummaryData) {
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text("Shift Summary", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("Total Sales", style = MaterialTheme.typography.bodyLarge)
+            Text(summary.totalSales.toString(), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("Total Revenue", style = MaterialTheme.typography.bodyLarge)
+            Text("₹ ${"%.2f".format(summary.totalRevenue)}", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("Meter Difference", style = MaterialTheme.typography.bodyLarge)
+            Text("${summary.meterDifference.toInt()} L", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+        }
+        if (summary.fuelBreakdown.isNotEmpty()) {
+            HorizontalDivider()
+            Text("Fuel Breakdown", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            summary.fuelBreakdown.forEach { (fuel, volume) ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(fuel, style = MaterialTheme.typography.bodyMedium)
+                    Text("${volume.toInt()} L", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
+        Spacer(Modifier.height(8.dp))
+        PmPrimaryButton("Done", onClick = { }, modifier = Modifier.fillMaxWidth())
     }
 }
 
 @Composable
 private fun InfoBlock(label: String, value: String, modifier: Modifier = Modifier) {
     Column(modifier = modifier) {
-        Text(text = label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(text = value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
     }
 }
 
@@ -270,51 +270,4 @@ private fun formatTime(timestamp: Long): String {
         .atZone(ZoneId.systemDefault())
         .toLocalTime()
         .format(DateTimeFormatter.ofPattern("hh:mm a"))
-}
-
-@Composable
-private fun ShiftSummaryDialog(summary: ShiftSummaryData, onDismiss: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(onClick = onDismiss) { Text("OK") }
-        },
-        title = { Text("Shift Summary", fontWeight = FontWeight.Bold) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Total Sales: ${summary.totalSales}", style = MaterialTheme.typography.bodyLarge)
-                Text("Total Revenue: ₹ ${"%.2f".format(summary.totalRevenue)}", style = MaterialTheme.typography.bodyLarge)
-                Text("Meter Difference: ${summary.meterDifference.toInt()} L", style = MaterialTheme.typography.bodyLarge)
-                if (summary.fuelBreakdown.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text("Volume by Fuel:", fontWeight = FontWeight.SemiBold)
-                    summary.fuelBreakdown.forEach { (fuel, volume) ->
-                        Text("  $fuel: ${volume.toInt()} L", style = MaterialTheme.typography.bodyMedium)
-                    }
-                }
-            }
-        }
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun ShiftScreenPreview() {
-    PumpManagerTheme {
-        ShiftContent(
-            state = ShiftUiState(
-                activeShift = ShiftEntity(
-                    id = "1",
-                    attendantId = "Pallab",
-                    startTime = System.currentTimeMillis(),
-                    endTime = null,
-                    openingMeterReading = 12500.0,
-                    closingMeterReading = null,
-                    status = "active"
-                )
-            ),
-            onEvent = {},
-            onEndShiftClick = {}
-        )
-    }
 }
