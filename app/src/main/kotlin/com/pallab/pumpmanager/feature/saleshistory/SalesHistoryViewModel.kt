@@ -45,7 +45,7 @@ class SalesHistoryViewModel @Inject constructor(
                     _voidState.value = VoidState.Error("Could not restore stock for fuel type: ${sale.fuelType}")
                     return@launch
                 }
-                salesRepository.deleteSale(sale.id)
+                salesRepository.markSaleVoided(sale.id)
                 _voidState.value = VoidState.Success("Sale voided successfully")
             } catch (e: Exception) {
                 _voidState.value = VoidState.Error("Failed to void sale: ${e.message}")

@@ -37,7 +37,7 @@ object DatabaseModule {
             AppDatabase::class.java,
             "pump_manager_db"
         ).openHelperFactory(factory)
-            .addMigrations(Migrations.MIGRATION_1_2, Migrations.MIGRATION_2_3).build()
+            .addMigrations(Migrations.MIGRATION_1_2, Migrations.MIGRATION_2_3, Migrations.MIGRATION_3_4).build()
     }
 
     @Provides @Singleton

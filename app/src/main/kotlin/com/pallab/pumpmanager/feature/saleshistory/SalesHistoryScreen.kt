@@ -142,7 +142,7 @@ private fun SaleHistoryCard(
     onVoidClick: () -> Unit,
     isVoiding: Boolean
 ) {
-    val isVoided = sale.totalAmount == 0.0 // heuristic: voided sales have 0 amount
+    val isVoided = sale.isVoided
     val fuelDotColor = when {
         sale.fuelType.contains("petrol", ignoreCase = true) -> Green500
         sale.fuelType.contains("diesel", ignoreCase = true) -> Color(0xFF2563EB)

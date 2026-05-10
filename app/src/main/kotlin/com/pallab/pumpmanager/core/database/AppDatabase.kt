@@ -24,7 +24,7 @@ import com.pallab.pumpmanager.feature.inventory.TankDao
         SaleEntity::class,
         RefillLogEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {

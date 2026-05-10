@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pallab.pumpmanager.core.security.PinHasher
 import com.pallab.pumpmanager.core.session.SessionManager
+import com.pallab.pumpmanager.core.util.BusinessConstants
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -61,9 +62,9 @@ class AuthViewModel @Inject constructor(
             } else {
                 val attempts = _state.value.failedAttempts + 1
                 val lockDuration = when {
-                    attempts >= 10 -> 10 * 60 * 1_000L
-                    attempts >= 7 -> 2 * 60 * 1_000L
-                    attempts >= 5 -> 30 * 1_000L
+                    attempts >= BusinessConstants.MAX_PIN_ATTEMPTS * 2 -> 10 * 60 * 1_000L
+                    attempts >= BusinessConstants.MAX_PIN_ATTEMPTS + 2 -> 2 * 60 * 1_000L
+                    attempts >= BusinessConstants.MAX_PIN_ATTEMPTS -> 30 * 1_000L
                     else -> 0L
                 }
                 _state.update {

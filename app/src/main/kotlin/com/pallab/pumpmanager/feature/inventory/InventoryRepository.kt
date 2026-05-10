@@ -7,7 +7,7 @@ import javax.inject.Singleton
 interface InventoryRepository {
     fun getAllTanks(): Flow<List<TankEntity>>
     suspend fun getTankById(id: String): TankEntity?
-    fun getLowStockTanks(): Flow<List<TankEntity>>
+    fun getLowStockTanks(threshold: Double = com.pallab.pumpmanager.core.util.BusinessConstants.LOW_STOCK_THRESHOLD_FRACTION): Flow<List<TankEntity>>
     suspend fun decrementStock(fuelTypeId: String, liters: Double): Int
     suspend fun incrementStockByFuelTypeId(fuelTypeId: String, liters: Double): Int
     suspend fun addStock(tankId: String, liters: Double): Int
@@ -25,7 +25,7 @@ class InventoryRepositoryImpl @Inject constructor(
 ) : InventoryRepository {
     override fun getAllTanks() = tankDao.getAllTanks()
     override suspend fun getTankById(id: String) = tankDao.getTankById(id)
-    override fun getLowStockTanks() = tankDao.getLowStockTanks()
+    override fun getLowStockTanks(threshold: Double) = tankDao.getLowStockTanks(threshold)
     override suspend fun decrementStock(fuelTypeId: String, liters: Double) = tankDao.decrementStock(fuelTypeId, liters)
     override suspend fun incrementStockByFuelTypeId(fuelTypeId: String, liters: Double) = tankDao.incrementStockByFuelTypeId(fuelTypeId, liters)
     override suspend fun addStock(tankId: String, liters: Double) = tankDao.addStock(tankId, liters)

@@ -13,11 +13,18 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+
 import androidx.compose.foundation.border
+
 import androidx.compose.foundation.layout.*
+
+import androidx.compose.foundation.rememberScrollState
+
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Dashboard
@@ -139,6 +146,7 @@ fun DashboardScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardHome(
     onNavigateToTab: (Int) -> Unit = {},
@@ -146,6 +154,7 @@ fun DashboardHome(
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
+    var isRefreshing by remember { mutableStateOf(false) }
 
     val hour = LocalTime.now().hour
     val greeting = when {
@@ -155,24 +164,61 @@ fun DashboardHome(
     }
     val date = LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, dd MMM yyyy"))
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp)
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = {
+            isRefreshing = true
+            viewModel.refresh()
+            isRefreshing = false
+        },
+        modifier = Modifier.fillMaxSize()
     ) {
-        Text(greeting, style = MaterialTheme.typography.headlineLarge)
-        Text(
-            date,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(Modifier.height(20.dp))
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp)
+                .verticalScroll(rememberScrollState())
+        ) {
+            Text(greeting, style = MaterialTheme.typography.headlineLarge)
+            Text(
+                date,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(20.dp))
 
-        if (state.isLoading) {
-            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+            if (state.errorMessage != null) {
+                Surface(
+                    shape = MaterialTheme.shapes.small,
+                    color = MaterialTheme.colorScheme.errorContainer,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = state.errorMessage ?: "",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.weight(1f)
+                        )
+                        TextButton(onClick = {
+                            viewModel.refresh()
+                        }) {
+                            Text("Retry", color = MaterialTheme.colorScheme.error)
+                        }
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
             }
-        } else {
+
+            if (state.isLoading) {
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            } else {
             // Shift card
             val shift = state.activeShift
             if (shift != null) {
@@ -186,7 +232,7 @@ fun DashboardHome(
                                 LocalTime.now()
                             )
                             val absDuration = if (duration.isNegative) duration.negated() else duration
-                            elapsed = "%dh %02dm".format(absDuration.toHours(), absDuration.toMinutesPart())
+                            elapsed = "%dh %02dm".format(absDuration.toHours(), absDuration.toMinutes() % 60)
                             delay(60_000L)
                         }
                     }
@@ -289,6 +335,7 @@ fun DashboardHome(
             TextButton(onClick = onNavigateToSalesHistory) {
                 Text("View Sales History →")
             }
+            }
         }
     }
 }
@@ -328,11 +375,3 @@ private fun PmPrimaryButton(text: String, onClick: () -> Unit, modifier: Modifie
     }
 }
 
-@Composable
-fun PlaceholderScreen(name: String) {
-    Text(
-        text = "$name Screen (Coming Soon)",
-        style = MaterialTheme.typography.headlineMedium,
-        modifier = Modifier.padding(16.dp)
-    )
-}

@@ -7,6 +7,8 @@ import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
@@ -63,7 +65,7 @@ fun ShiftScreen(
             onDismissRequest = { viewModel.onEvent(ShiftEvent.DismissSummary) },
             sheetState = sheetState
         ) {
-            ShiftSummaryContent(summary = summaryData)
+            ShiftSummaryContent(summary = summaryData, onDismiss = { viewModel.onEvent(ShiftEvent.DismissSummary) })
         }
     }
 
@@ -91,7 +93,7 @@ fun ShiftScreen(
     ) {
         ShiftTopBar(activeShift = state.activeShift)
 
-        Column(modifier = Modifier.padding(24.dp)) {
+        Column(modifier = Modifier.padding(24.dp).verticalScroll(rememberScrollState())) {
             val activeShift = state.activeShift
             if (activeShift == null) {
                 StartShiftForm(
@@ -184,7 +186,7 @@ private fun ActiveShiftDashboard(
                 LocalTime.now()
             )
             val absDuration = if (duration.isNegative) duration.negated() else duration
-            elapsed = "%dh %02dm".format(absDuration.toHours(), absDuration.toMinutesPart())
+            elapsed = "%dh %02dm".format(absDuration.toHours(), absDuration.toMinutes() % 60)
             delay(60_000L)
         }
     }
@@ -224,7 +226,7 @@ private fun ActiveShiftDashboard(
 }
 
 @Composable
-private fun ShiftSummaryContent(summary: ShiftSummaryData) {
+private fun ShiftSummaryContent(summary: ShiftSummaryData, onDismiss: () -> Unit = {}) {
     Column(
         modifier = Modifier.fillMaxWidth().padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -253,7 +255,7 @@ private fun ShiftSummaryContent(summary: ShiftSummaryData) {
             }
         }
         Spacer(Modifier.height(8.dp))
-        PmPrimaryButton("Done", onClick = { }, modifier = Modifier.fillMaxWidth())
+        PmPrimaryButton("Done", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
     }
 }
 

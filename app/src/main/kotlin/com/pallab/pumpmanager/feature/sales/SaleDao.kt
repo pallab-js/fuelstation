@@ -45,4 +45,7 @@ interface SaleDao {
 
     @Query("DELETE FROM sales WHERE id = :id")
     suspend fun deleteSale(id: String)
+
+    @Query("UPDATE sales SET is_voided = 1 WHERE id = :id")
+    suspend fun markSaleVoided(id: String)
 }

@@ -17,8 +17,8 @@ interface TankDao {
     @Query("SELECT * FROM tanks WHERE id = :id")
     suspend fun getTankById(id: String): TankEntity?
 
-    @Query("SELECT * FROM tanks WHERE currentStockLiters < (capacityLiters * 0.1)")
-    fun getLowStockTanks(): Flow<List<TankEntity>>
+    @Query("SELECT * FROM tanks WHERE currentStockLiters < (capacityLiters * :threshold)")
+    fun getLowStockTanks(threshold: Double): Flow<List<TankEntity>>
 
     @Query("UPDATE tanks SET currentStockLiters = currentStockLiters - :liters WHERE fuelTypeId = :fuelTypeId AND currentStockLiters >= :liters")
     suspend fun decrementStock(fuelTypeId: String, liters: Double): Int

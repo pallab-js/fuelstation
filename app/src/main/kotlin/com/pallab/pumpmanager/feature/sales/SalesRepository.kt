@@ -17,6 +17,7 @@ interface SalesRepository {
     suspend fun getRevenueTrendSince(windowStart: Long): List<DayRevenue>
     suspend fun insertSale(sale: SaleEntity)
     suspend fun deleteSale(id: String)
+    suspend fun markSaleVoided(id: String)
     fun getSalesPaged(): Flow<PagingData<SaleEntity>>
 }
 
@@ -30,6 +31,7 @@ class SalesRepositoryImpl @Inject constructor(private val saleDao: SaleDao) : Sa
     override suspend fun getRevenueTrendSince(windowStart: Long) = saleDao.getRevenueTrendSince(windowStart)
     override suspend fun insertSale(sale: SaleEntity) = saleDao.insertSale(sale)
     override suspend fun deleteSale(id: String) = saleDao.deleteSale(id)
+    override suspend fun markSaleVoided(id: String) = saleDao.markSaleVoided(id)
     override fun getSalesPaged(): Flow<PagingData<SaleEntity>> = Pager(
         config = PagingConfig(pageSize = 30, enablePlaceholders = false),
         pagingSourceFactory = { saleDao.getSalesPaged() }

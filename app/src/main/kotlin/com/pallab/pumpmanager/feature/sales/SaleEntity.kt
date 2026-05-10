@@ -17,5 +17,6 @@ data class SaleEntity(
     @ColumnInfo(name = "price_per_liter") val pricePerLiter: Double,
     @ColumnInfo(name = "total_amount") val totalAmount: Double,
     @ColumnInfo(name = "payment_mode") val paymentMode: String,
-    @ColumnInfo(name = "timestamp") val timestamp: Long
+    @ColumnInfo(name = "timestamp") val timestamp: Long,
+    @ColumnInfo(name = "is_voided", defaultValue = "0") val isVoided: Boolean = false
 )
